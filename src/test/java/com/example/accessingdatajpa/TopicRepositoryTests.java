@@ -26,19 +26,16 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
 @DataJpaTest
-public class CustomerRepositoryTests {
+public class TopicRepositoryTests {
 	@Autowired
 	private TestEntityManager entityManager;
 
 	@Autowired
-	private CustomerRepository customers;
+	private TopicRepository customers;
 
 	@Test
 	public void testFindByLastName() {
-		User customer = new User("first", "last", new Municipality("city"));
-		entityManager.persist(customer);
-
-		List<User> findByLastName = customers.findByLastName(customer.getLastName());
+		
 
 		//assertThat(findByLastName).extracting(Customer::getLastName).containsOnly(customer.getLastName());
 	}

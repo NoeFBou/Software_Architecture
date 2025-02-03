@@ -1,10 +1,12 @@
 package com.example.accessingdatajpa;
 
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-public interface MessageRepository  extends CrudRepository<Message, Long> {
-    List<Message> findByMessage(String message);
-    Message findById(long id);
+@Repository
+public interface MessageRepository extends JpaRepository<Message, Integer> {
+    List<Message> findByContentContaining(String keyword);
 }
