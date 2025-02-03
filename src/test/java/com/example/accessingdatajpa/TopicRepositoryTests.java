@@ -35,7 +35,7 @@ public class TopicRepositoryTests {
 
 	@Test
 	public void testFindByLastName() {
-		
+
 
 		//assertThat(findByLastName).extracting(Customer::getLastName).containsOnly(customer.getLastName());
 	}

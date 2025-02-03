@@ -33,16 +33,29 @@ public class MessageService {
      */
     @Transactional
     public Message sendMessage(String content, Integer personId, Integer queueId, List<Integer> topicIds) {
+        // Recherche de la personne, création si non trouvée
+        Person person;
         Optional<Person> personOpt = personRepository.findById(personId);
-        Optional<Queue> queueOpt = queueRepository.findById(queueId);
-
-        if (!personOpt.isPresent() || !queueOpt.isPresent()) {
-            throw new RuntimeException("Person ou Queue non trouvé(e)");
+        if (personOpt.isPresent()) {
+            person = personOpt.get();
+        } else {
+            // Création d'une nouvelle Person avec un nom par défaut
+            person = new Person("User" + personId);
+            person = personRepository.save(person);
         }
 
-        Person person = personOpt.get();
-        Queue queue = queueOpt.get();
+        // Vérification de l'existence de la Queue, création automatique si non trouvée
+        Optional<Queue> queueOpt = queueRepository.findById(queueId);
+        Queue queue;
+        if (queueOpt.isPresent()) {
+            queue = queueOpt.get();
+        } else {
+            // Création d'une nouvelle Queue avec un nom et une description par défaut
+            queue = new Queue("Queue" + queueId, "Queue automatiquement créée pour l'id " + queueId);
+            queue = queueRepository.save(queue);
+        }
 
+        // Création et persistance du message
         Message message = new Message(content, person, queue);
         message = messageRepository.save(message); // pour obtenir l’ID généré
 
@@ -71,6 +84,8 @@ public class MessageService {
 
         return message;
     }
+
+
 
     /**
      * Récupère la liste des messages d’un topic à partir d’un numéro interne donné.
