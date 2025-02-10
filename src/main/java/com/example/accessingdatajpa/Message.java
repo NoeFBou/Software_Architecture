@@ -41,6 +41,12 @@ public class Message {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "first_accessed_at")
+    private LocalDateTime firstAccessedAt;
+
+    @Column(name = "read_count")
+    private int readCount = 0;
+
 
 
     public Message() {}
@@ -49,6 +55,8 @@ public class Message {
         this.content = content;
         this.person = person;
         this.queue = queue;
+        this.createdAt = LocalDateTime.now();
+
     }
 
     public List<TopicMessage> getTopicMessages() {
@@ -115,5 +123,20 @@ public class Message {
         isRead = read;
     }
 
+    public LocalDateTime getFirstAccessedAt() {
+        return firstAccessedAt;
+    }
+
+    public void setFirstAccessedAt(LocalDateTime firstAccessedAt) {
+        this.firstAccessedAt = firstAccessedAt;
+    }
+
+    public int getReadCount() {
+        return readCount;
+    }
+
+    public void setReadCount(int readCount) {
+        this.readCount = readCount;
+    }
 
 }

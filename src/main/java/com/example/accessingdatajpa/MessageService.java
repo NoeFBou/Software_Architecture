@@ -1,6 +1,8 @@
 package com.example.accessingdatajpa;
 
 import jakarta.transaction.Transactional;
+
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -39,12 +41,10 @@ public class MessageService {
         if (personOpt.isPresent()) {
             person = personOpt.get();
         } else {
-            // Création d'une nouvelle Person avec un nom par défaut
             person = new Person("User" + personId);
             person = personRepository.save(person);
         }
 
-        // Vérification de l'existence de la Queue, création automatique si non trouvée
         Optional<Queue> queueOpt = queueRepository.findById(queueId);
         Queue queue;
         if (queueOpt.isPresent()) {
@@ -93,9 +93,18 @@ public class MessageService {
     @Transactional
     public List<Message> getMessagesFromTopic(Integer topicId, Integer startingNumber) {
         List<TopicMessage> topicMessages = topicMessageRepository.findByTopicAndInternalNumberGreaterThanEqual(topicId, startingNumber);
-        return topicMessages.stream()
+        List<Message> messages = topicMessages.stream()
                 .map(TopicMessage::getMessage)
                 .collect(Collectors.toList());
+
+        for (Message message : messages) {
+            if (message.getFirstAccessedAt() == null) {
+                message.setFirstAccessedAt(LocalDateTime.now());
+            }
+            message.setReadCount(message.getReadCount() + 1);
+        }
+
+        return messages;
     }
 
     /**
@@ -112,11 +121,15 @@ public class MessageService {
     @Transactional
     public Message markMessageAsRead(Integer messageId) {
         Optional<Message> messageOpt = messageRepository.findById(messageId);
-        if (!messageOpt.isPresent()) {
+        if (messageOpt.isEmpty()) {
             throw new RuntimeException("Message non trouvé");
         }
         Message message = messageOpt.get();
         message.setIsRead(true);
+        message.setReadCount(message.getReadCount() + 1);
+        if (message.getFirstAccessedAt() == null) {
+            message.setFirstAccessedAt(LocalDateTime.now());
+        }
         return messageRepository.save(message);
     }
 
@@ -127,9 +140,10 @@ public class MessageService {
      */
     @Transactional
     public void deleteMessageFromTopic(Integer topicId, Integer messageId) {
-        // Vérification de l'existence du message et de son statut de lecture
+        long startTime = System.currentTimeMillis();
+
         Optional<Message> messageOpt = messageRepository.findById(messageId);
-        if (!messageOpt.isPresent()) {
+        if (messageOpt.isEmpty()) {
             throw new RuntimeException("Message non trouvé");
         }
         Message message = messageOpt.get();
@@ -138,18 +152,18 @@ public class MessageService {
             throw new RuntimeException("Impossible de supprimer un message qui n'a pas été lu dans sa queue.");
         }
 
-        // Suppression de la relation entre le topic et le message
         TopicMessageId tmId = new TopicMessageId(topicId, messageId);
         Optional<TopicMessage> tmOpt = topicMessageRepository.findById(tmId);
-        if (!tmOpt.isPresent()) {
+        if (tmOpt.isEmpty()) {
             throw new RuntimeException("Le message n'est pas associé au topic spécifié.");
         }
         topicMessageRepository.delete(tmOpt.get());
 
-        // Si le message n'est plus associé à aucun topic, on le supprime de la base
         List<TopicMessage> associations = topicMessageRepository.findByMessageId(messageId);
         if (associations.isEmpty()) {
             messageRepository.delete(message);
         }
+
+        long endTime = System.currentTimeMillis();
     }
 }
