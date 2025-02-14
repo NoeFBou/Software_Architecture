@@ -67,7 +67,7 @@ erDiagram
 ```
 
 ```
-- Séance du 03/01
+03/01
 - JSON acyclic
 - Cascade (Persistance)
 - Queries
@@ -78,4 +78,11 @@ erDiagram
 - GET : récupération d'une liste de massage à partir d'un numéro donnée
 - Recherche de message par contenu partiel
 - Suppression d'un message d'un Topic :  suppression du message uniquement si plus dans aucun Topic
+```
+
+```
+10/02
+- Add @Service Layer (and affect corresponding methods to layers) 
+- Add message meta-data and decoration : time created / time first accessed / number of read 
+- Logging and statistics : number of read, time to delete, access; ...
 ```

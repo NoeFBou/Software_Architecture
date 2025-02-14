@@ -1,4 +1,4 @@
-package com.example.accessingdatajpa;
+package com.example.accessingdatajpa.Models.Entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -6,7 +6,6 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 @Entity

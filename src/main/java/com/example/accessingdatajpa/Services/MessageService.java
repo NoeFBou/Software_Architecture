@@ -1,5 +1,7 @@
-package com.example.accessingdatajpa;
+package com.example.accessingdatajpa.Services;
 
+import com.example.accessingdatajpa.Models.Entity.*;
+import com.example.accessingdatajpa.Models.Repository.*;
 import jakarta.transaction.Transactional;
 
 import java.time.LocalDateTime;

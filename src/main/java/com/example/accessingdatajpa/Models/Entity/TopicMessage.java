@@ -1,10 +1,9 @@
-package com.example.accessingdatajpa;
+package com.example.accessingdatajpa.Models.Entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 import java.io.Serializable;
-import java.util.Objects;
 
 @Entity
 @Table(name = "TOPIC_MESSAGE")

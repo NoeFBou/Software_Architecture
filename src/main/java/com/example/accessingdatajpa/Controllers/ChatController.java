@@ -1,8 +1,14 @@
-package com.example.accessingdatajpa;
+package com.example.accessingdatajpa.Controllers;
 
+import com.example.accessingdatajpa.Models.Entity.Person;
+import com.example.accessingdatajpa.Models.Repository.PersonRepository;
+import com.example.accessingdatajpa.Services.MessageService;
+import com.example.accessingdatajpa.Models.Entity.Message;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpSession;
 import java.util.List;
 
 @RestController
@@ -12,17 +18,55 @@ public class ChatController {
     @Autowired
     private MessageService chatService;
 
+    @Autowired
+    private PersonRepository personRepository;
+
+    /**
+     * Connexion de l'utilisateur.
+     * Si l'utilisateur n'existe pas, il est créé.
+     * L'utilisateur est stocké en session pour les requêtes suivantes.
+     *
+     * Exemple d'appel : POST http://localhost:8080/api/login?username=Alice
+     */
+    @PostMapping("/login")
+    public Person login(HttpSession session, @RequestParam String username) {
+        Person person = personRepository.findByUsername(username);
+        if (person == null) {
+            person = new Person(username);
+            person = personRepository.save(person);
+        }
+        session.setAttribute("person", person);
+        return person;
+    }
+
+    /**
+     * Déconnexion de l'utilisateur.
+     * Invalide la session en cours.
+     *
+     * Exemple d'appel : POST http://localhost:8080/api/logout
+     */
+    @PostMapping("/logout")
+    public String logout(HttpSession session) {
+        session.invalidate();
+        return "Déconnexion réussie.";
+    }
+
     /**
      * Envoi d’un message.
      * Exemple d’appel avec Postman (méthode POST) :
      * http://localhost:8080/api/messages?content=Bonjour&personId=1&queueId=2&topicIds=1,3
      */
     @PostMapping("/messages")
-    public Message sendMessage(@RequestParam String content,
-                               @RequestParam Integer personId,
+    public Message sendMessage(HttpSession session,
+                               @RequestParam String content,
                                @RequestParam Integer queueId,
                                @RequestParam(required = false) List<Integer> topicIds) {
-        return chatService.sendMessage(content, personId, queueId, topicIds);
+        Person person = (Person) session.getAttribute("person");
+        if (person == null) {
+            throw new RuntimeException("Utilisateur non connecté. Veuillez vous connecter via /api/login.");
+        }
+
+        return chatService.sendMessage(content, person.getId().intValue(), queueId, topicIds);
     }
 
     /**
