@@ -1,5 +1,7 @@
-package com.example.accessingdatajpa;
+package com.example.accessingdatajpa.Models.Repository;
 
+import com.example.accessingdatajpa.Models.Entity.TopicMessage;
+import com.example.accessingdatajpa.Models.Entity.TopicMessageId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

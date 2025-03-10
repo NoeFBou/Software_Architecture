@@ -1,4 +1,4 @@
-package com.example.accessingdatajpa;
+package com.example.accessingdatajpa.Models.Entity;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;

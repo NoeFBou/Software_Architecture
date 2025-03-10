@@ -1,5 +1,7 @@
-package com.example.accessingdatajpa;
+package com.example.accessingdatajpa.Controllers;
 
+import com.example.accessingdatajpa.Models.Entity.Message;
+import com.example.accessingdatajpa.Services.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

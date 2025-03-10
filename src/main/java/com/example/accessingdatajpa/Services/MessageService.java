@@ -1,17 +1,24 @@
-package com.example.accessingdatajpa;
+package com.example.accessingdatajpa.Services;
 
+import com.example.accessingdatajpa.Controllers.ChatController;
+import com.example.accessingdatajpa.Models.Entity.*;
+import com.example.accessingdatajpa.Models.Repository.*;
 import jakarta.transaction.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class MessageService {
+
+    private static final Logger logger = LoggerFactory.getLogger(MessageService.class);
 
     @Autowired
     private TopicRepository topicRepository;
@@ -43,6 +50,7 @@ public class MessageService {
         } else {
             person = new Person("User" + personId);
             person = personRepository.save(person);
+            logger.info("Created new Person: {}", person.getUsername());
         }
 
         Optional<Queue> queueOpt = queueRepository.findById(queueId);
@@ -53,11 +61,13 @@ public class MessageService {
             // Création d'une nouvelle Queue avec un nom et une description par défaut
             queue = new Queue("Queue" + queueId, "Queue automatiquement créée pour l'id " + queueId);
             queue = queueRepository.save(queue);
+            logger.info("Created new Queue: {}", queue.getName());
         }
 
         // Création et persistance du message
         Message message = new Message(content, person, queue);
         message = messageRepository.save(message); // pour obtenir l’ID généré
+        logger.info("Message created with ID {} at {}", message.getId(), message.getCreatedAt());
 
         // Association du message aux topics (si des IDs de topics sont fournis)
         if (topicIds != null) {
@@ -78,6 +88,11 @@ public class MessageService {
                     // Mise à jour des collections bidirectionnelles
                     topic.getTopicMessages().add(topicMessage);
                     message.getTopicMessages().add(topicMessage);
+                    logger.info("Associated Message {} with Topic {} (internal number {})",
+                            message.getId(), topic.getId(), nextInternalNumber);
+                }
+                else {
+                    logger.warn("Topic with ID {} not found; skipping association", topicId);
                 }
             }
         }
@@ -100,8 +115,10 @@ public class MessageService {
         for (Message message : messages) {
             if (message.getFirstAccessedAt() == null) {
                 message.setFirstAccessedAt(LocalDateTime.now());
+                logger.info("Message {} accessed for the first time at {}", message.getId(), message.getFirstAccessedAt());
             }
             message.setReadCount(message.getReadCount() + 1);
+            logger.info("Message {} read count updated to {}", message.getId(), message.getReadCount());
         }
 
         return messages;
@@ -112,7 +129,9 @@ public class MessageService {
      */
     @Transactional
     public List<Message> searchMessages(String keyword) {
-        return messageRepository.findByContentContaining(keyword);
+        List<Message> messages = messageRepository.findByContentContaining(keyword);
+        logger.info("Search for keyword '{}' returned {} messages", keyword, messages.size());
+        return messages;
     }
 
     /**
@@ -130,6 +149,7 @@ public class MessageService {
         if (message.getFirstAccessedAt() == null) {
             message.setFirstAccessedAt(LocalDateTime.now());
         }
+        logger.info("Message {} marked as read", message.getId());
         return messageRepository.save(message);
     }
 
@@ -158,12 +178,15 @@ public class MessageService {
             throw new RuntimeException("Le message n'est pas associé au topic spécifié.");
         }
         topicMessageRepository.delete(tmOpt.get());
+        logger.info("Association between Message {} and Topic {} deleted", messageId, topicId);
 
         List<TopicMessage> associations = topicMessageRepository.findByMessageId(messageId);
         if (associations.isEmpty()) {
             messageRepository.delete(message);
+            logger.info("Message {} deleted from database as it is no longer associated with any topic", messageId);
         }
 
         long endTime = System.currentTimeMillis();
+        logger.info("Time taken to delete message {}: {} ms", messageId, (endTime - startTime));
     }
 }
