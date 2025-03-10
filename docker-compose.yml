@@ -13,7 +13,9 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   app1:
-    build: ..
+    build:
+      context: ./MessageApp  # Build context pointing to MessageApp folder
+      dockerfile: Dockerfile   # Specify Dockerfile in the MessageApp directory
     ports:
       - "8080:8080"
     depends_on:
@@ -26,7 +28,9 @@ services:
       SPRING_JPA_SHOW_SQL: "true"
 
   app2:
-    build: ..
+    build:
+      context: ./MessageApp  # Same fix for app2 as well
+      dockerfile: Dockerfile
     ports:
       - "8081:8080"
     depends_on:
