@@ -20,6 +20,8 @@ public class MessageService {
 
     private static final Logger logger = LoggerFactory.getLogger(MessageService.class);
 
+    private static final String LOG_TOPIC_NAME = "log";
+
     @Autowired
     private TopicRepository topicRepository;
 
@@ -35,6 +37,9 @@ public class MessageService {
     @Autowired
     private TopicMessageRepository topicMessageRepository;
 
+    @Autowired
+    private LogSenderService logSenderService;
+
     /**
      * Envoi d’un message :
      * - Crée le message associé à une personne et à une queue.
@@ -42,7 +47,13 @@ public class MessageService {
      */
     @Transactional
     public Message sendMessage(String content, Integer personId, Integer queueId, List<Integer> topicIds) {
-        // Recherche de la personne, création si non trouvée
+        return sendMessage(content, personId, queueId, topicIds, false);
+    }
+
+    // Surcharge avec le flag isLogMessage
+    @Transactional
+    public Message sendMessage(String content, Integer personId, Integer queueId, List<Integer> topicIds, boolean isLogMessage) {
+        // Recherche ou création de la Person
         Person person;
         Optional<Person> personOpt = personRepository.findById(personId);
         if (personOpt.isPresent()) {
@@ -53,23 +64,23 @@ public class MessageService {
             logger.info("Created new Person: {}", person.getUsername());
         }
 
+        // Recherche ou création de la Queue
         Optional<Queue> queueOpt = queueRepository.findById(queueId);
         Queue queue;
         if (queueOpt.isPresent()) {
             queue = queueOpt.get();
         } else {
-            // Création d'une nouvelle Queue avec un nom et une description par défaut
-            queue = new Queue("Queue" + queueId, "Queue automatiquement créée pour l'id " + queueId);
+            queue = new Queue("Queue" + queueId, "Queue automatically created for id " + queueId);
             queue = queueRepository.save(queue);
             logger.info("Created new Queue: {}", queue.getName());
         }
 
         // Création et persistance du message
         Message message = new Message(content, person, queue);
-        message = messageRepository.save(message); // pour obtenir l’ID généré
+        message = messageRepository.save(message);
         logger.info("Message created with ID {} at {}", message.getId(), message.getCreatedAt());
 
-        // Association du message aux topics (si des IDs de topics sont fournis)
+        // Association du message aux topics (si fournis)
         if (topicIds != null) {
             for (Integer topicId : topicIds) {
                 Optional<Topic> topicOpt = topicRepository.findById(topicId);
@@ -79,7 +90,6 @@ public class MessageService {
                     int nextInternalNumber = topic.getTopicMessages().stream()
                             .mapToInt(tm -> tm.getInternalNumber() != null ? tm.getInternalNumber() : 0)
                             .max().orElse(0) + 1;
-
                     TopicMessage topicMessage = new TopicMessage();
                     topicMessage.setTopic(topic);
                     topicMessage.setMessage(message);
@@ -90,11 +100,18 @@ public class MessageService {
                     message.getTopicMessages().add(topicMessage);
                     logger.info("Associated Message {} with Topic {} (internal number {})",
                             message.getId(), topic.getId(), nextInternalNumber);
-                }
-                else {
+                } else {
                     logger.warn("Topic with ID {} not found; skipping association", topicId);
                 }
             }
+        }
+
+        // Envoyer le log à l'application externe si ce n'est pas un message de log
+        if (!isLogMessage) {
+            String logMsg = "Received message with ID " + message.getId() +
+                    " from Person " + person.getUsername() +
+                    " with content: " + message.getContent();
+            logSenderService.sendLog(logMsg);
         }
 
         return message;
@@ -189,4 +206,5 @@ public class MessageService {
         long endTime = System.currentTimeMillis();
         logger.info("Time taken to delete message {}: {} ms", messageId, (endTime - startTime));
     }
+
 }
