@@ -1,26 +1,17 @@
 package com.example.accessingdatajpa.Models.Entity;
 
 import jakarta.persistence.Embeddable;
-
 import java.util.Objects;
 
 @Embeddable
 public class TopicMessageId {
     private Integer topicId;
-    private Integer messageId;
+    private Long messageId; // Changement ici de Integer à Long
 
     public TopicMessageId() {}
 
-    public TopicMessageId(Integer topicId, Integer messageId) {
+    public TopicMessageId(Integer topicId, Long messageId) {
         this.topicId = topicId;
-        this.messageId = messageId;
-    }
-
-    public Integer getMessageId() {
-        return messageId;
-    }
-
-    public void setMessageId(Integer messageId) {
         this.messageId = messageId;
     }
 
@@ -30,6 +21,14 @@ public class TopicMessageId {
 
     public void setTopicId(Integer topicId) {
         this.topicId = topicId;
+    }
+
+    public Long getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(Long messageId) {
+        this.messageId = messageId;
     }
 
     @Override

@@ -33,9 +33,11 @@ public class TopicMessage implements Serializable {
         this.topic = topic;
         this.message = message;
         this.internalNumber = internalNumber;
-        this.id = new TopicMessageId(topic.getId(), Math.toIntExact(message.getId()));
+        // Ici, on initialise la clé composite en se basant sur les identifiants
+        this.id = new TopicMessageId(topic.getId(), message.getId());
     }
 
+    // Getters et setters...
     public TopicMessageId getId() {
         return id;
     }
