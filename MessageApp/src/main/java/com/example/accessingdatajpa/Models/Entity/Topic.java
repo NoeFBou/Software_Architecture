@@ -13,7 +13,7 @@ public class Topic {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "topic_id")
-    private Integer id;
+    private Long id;
 
     @Column(nullable = false)
     private String name;
@@ -33,11 +33,11 @@ public class Topic {
 
     // Getters et setters
 
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

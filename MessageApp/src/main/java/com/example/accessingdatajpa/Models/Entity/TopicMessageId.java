@@ -5,21 +5,21 @@ import java.util.Objects;
 
 @Embeddable
 public class TopicMessageId {
-    private Integer topicId;
-    private Long messageId; // Changement ici de Integer à Long
+    private Long topicId;
+    private Long messageId;
 
     public TopicMessageId() {}
 
-    public TopicMessageId(Integer topicId, Long messageId) {
+    public TopicMessageId(Long topicId, Long messageId) {
         this.topicId = topicId;
         this.messageId = messageId;
     }
 
-    public Integer getTopicId() {
+    public Long getTopicId() {
         return topicId;
     }
 
-    public void setTopicId(Integer topicId) {
+    public void setTopicId(Long topicId) {
         this.topicId = topicId;
     }
 

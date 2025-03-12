@@ -13,9 +13,9 @@ import java.util.List;
 public interface TopicMessageRepository extends JpaRepository<TopicMessage, TopicMessageId> {
 
     @Query("SELECT tm FROM TopicMessage tm WHERE tm.topic.id = :topicId AND tm.internalNumber >= :start ORDER BY tm.internalNumber")
-    List<TopicMessage> findByTopicAndInternalNumberGreaterThanEqual(@Param("topicId") Integer topicId,
-                                                                    @Param("start") Integer start);
+    List<TopicMessage> findByTopicAndInternalNumberGreaterThanEqual(@Param("topicId") Long topicId,
+                                                                    @Param("start") Long start);
 
     @Query("SELECT tm FROM TopicMessage tm WHERE tm.message.id = :messageId")
-    List<TopicMessage> findByMessageId(@Param("messageId") Integer messageId);
+    List<TopicMessage> findByMessageId(@Param("messageId") Long messageId);
 }

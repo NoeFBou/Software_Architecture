@@ -25,11 +25,11 @@ public class TopicMessage implements Serializable {
     private Message message;
 
     @Column(name = "internal_number")
-    private Integer internalNumber;
+    private Long internalNumber;
 
     public TopicMessage() {}
 
-    public TopicMessage(Topic topic, Message message, Integer internalNumber) {
+    public TopicMessage(Topic topic, Message message, Long internalNumber) {
         this.topic = topic;
         this.message = message;
         this.internalNumber = internalNumber;
@@ -62,11 +62,11 @@ public class TopicMessage implements Serializable {
         this.message = message;
     }
 
-    public Integer getInternalNumber() {
+    public Long getInternalNumber() {
         return internalNumber;
     }
 
-    public void setInternalNumber(Integer internalNumber) {
+    public void setInternalNumber(Long internalNumber) {
         this.internalNumber = internalNumber;
     }
 }

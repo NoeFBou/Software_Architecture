@@ -1,19 +1,28 @@
 package com.example.accessingdatajpa.Services;
 
-import com.example.accessingdatajpa.Controllers.ChatController;
-import com.example.accessingdatajpa.Models.Entity.*;
-import com.example.accessingdatajpa.Models.Repository.*;
-import jakarta.transaction.Transactional;
-
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.example.accessingdatajpa.Models.Entity.Message;
+import com.example.accessingdatajpa.Models.Entity.Person;
+import com.example.accessingdatajpa.Models.Entity.Queue;
+import com.example.accessingdatajpa.Models.Entity.Topic;
+import com.example.accessingdatajpa.Models.Entity.TopicMessage;
+import com.example.accessingdatajpa.Models.Entity.TopicMessageId;
+import com.example.accessingdatajpa.Models.Repository.MessageRepository;
+import com.example.accessingdatajpa.Models.Repository.PersonRepository;
+import com.example.accessingdatajpa.Models.Repository.QueueRepository;
+import com.example.accessingdatajpa.Models.Repository.TopicMessageRepository;
+import com.example.accessingdatajpa.Models.Repository.TopicRepository;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class MessageService {
@@ -46,18 +55,22 @@ public class MessageService {
      * - Pour chaque topic (si fourni), on crée une relation avec numérotation interne.
      */
     @Transactional
-    public Message sendMessage(String content, Integer personId, Integer queueId, List<Integer> topicIds) {
+    public Message sendMessage(String content, Long personId, Long queueId, List<Long> topicIds) {
         return sendMessage(content, personId, queueId, topicIds, false);
     }
 
     // Surcharge avec le flag isLogMessage
     @Transactional
-    public Message sendMessage(String content, Integer personId, Integer queueId, List<Integer> topicIds, boolean isLogMessage) {
+    public Message sendMessage(String content, Long personId, Long queueId, List<Long> topicIds, boolean isLogMessage) {
+        
         // Recherche ou création de la Person
         Person person;
-        Optional<Person> personOpt = personRepository.findById(personId);
+        logger.info("DEBUG T personRepository: {}", personRepository);
+        Optional<Person> personOpt = personRepository.findByUsername("User" + personId);
+        logger.info("DEBUG T PersonOpt: {}", personOpt);
         if (personOpt.isPresent()) {
             person = personOpt.get();
+            logger.info("DEBUG T Person {} found", person.getUsername());
         } else {
             person = new Person("User" + personId);
             person = personRepository.save(person);
@@ -88,7 +101,7 @@ public class MessageService {
 
         // Association du message aux topics (si fournis)
         if (topicIds != null) {
-            for (Integer topicId : topicIds) {
+            for (Long topicId : topicIds) {
                 Optional<Topic> topicOpt = topicRepository.findById(topicId);
                 Topic topic;
                 if (topicOpt.isPresent()) {
@@ -100,9 +113,11 @@ public class MessageService {
                     logger.info("Created new Topic: {} with ID {}", topic.getName(), topic.getId());
                 }
                 // Détermination du prochain numéro interne dans le topic
-                int nextInternalNumber = topic.getTopicMessages().stream()
-                        .mapToInt(tm -> tm.getInternalNumber() != null ? tm.getInternalNumber() : 0)
-                        .max().orElse(0) + 1;
+                Long nextInternalNumber = topic.getTopicMessages().stream()
+                        .mapToLong(tm -> tm.getInternalNumber() != null ? tm.getInternalNumber() : 0L)  // Use mapToLong instead of mapToInt
+                        .max()  // No need to cast to int, since we are working with Long
+                        .orElse(0L) + 1;  // Default value is 0L, and we add 1 to get the next number
+
                 // Utilisation du constructeur pour initialiser la clé composite
                 TopicMessage topicMessage = new TopicMessage(topic, message, nextInternalNumber);
                 // NE PAS appeler explicitement topicMessageRepository.save(topicMessage);
@@ -133,7 +148,7 @@ public class MessageService {
      * Récupère la liste des messages d’un topic à partir d’un numéro interne donné.
      */
     @Transactional
-    public List<Message> getMessagesFromTopic(Integer topicId, Integer startingNumber) {
+    public List<Message> getMessagesFromTopic(Long topicId, Long startingNumber) {
         List<TopicMessage> topicMessages = topicMessageRepository.findByTopicAndInternalNumberGreaterThanEqual(topicId, startingNumber);
         List<Message> messages = topicMessages.stream()
                 .map(TopicMessage::getMessage)
@@ -165,7 +180,7 @@ public class MessageService {
      * Marque un message comme lu.
      */
     @Transactional
-    public Message markMessageAsRead(Integer messageId) {
+    public Message markMessageAsRead(Long messageId) {
         Optional<Message> messageOpt = messageRepository.findById(messageId);
         if (messageOpt.isEmpty()) {
             throw new RuntimeException("Message non trouvé");
@@ -186,7 +201,7 @@ public class MessageService {
      * Si le message n’est plus associé à aucun topic, il est supprimé de la base.
      */
     @Transactional
-    public void deleteMessageFromTopic(Integer topicId, Integer messageId) {
+    public void deleteMessageFromTopic(Long topicId, Long messageId) {
         long startTime = System.currentTimeMillis();
 
         Optional<Message> messageOpt = messageRepository.findById(messageId);

@@ -21,9 +21,9 @@ public class ChatController {
      */
     @PostMapping("/messages")
     public Message sendMessage(@RequestParam String content,
-                               @RequestParam Integer personId,
-                               @RequestParam Integer queueId,
-                               @RequestParam(required = false) List<Integer> topicIds) {
+                               @RequestParam Long personId,
+                               @RequestParam Long queueId,
+                               @RequestParam(required = false) List<Long> topicIds) {
         return chatService.sendMessage(content, personId, queueId, topicIds);
     }
 
@@ -32,8 +32,8 @@ public class ChatController {
      * Exemple : GET http://localhost:8080/api/topics/1/messages?startingNumber=5
      */
     @GetMapping("/topics/{topicId}/messages")
-    public List<Message> getMessagesFromTopic(@PathVariable Integer topicId,
-                                              @RequestParam Integer startingNumber) {
+    public List<Message> getMessagesFromTopic(@PathVariable Long topicId,
+                                              @RequestParam Long startingNumber) {
         return chatService.getMessagesFromTopic(topicId, startingNumber);
     }
 
@@ -51,7 +51,7 @@ public class ChatController {
      * Exemple : PUT http://localhost:8080/api/messages/10/read
      */
     @PutMapping("/messages/{messageId}/read")
-    public Message markMessageAsRead(@PathVariable Integer messageId) {
+    public Message markMessageAsRead(@PathVariable Long messageId) {
         return chatService.markMessageAsRead(messageId);
     }
 
@@ -60,7 +60,7 @@ public class ChatController {
      * Exemple : DELETE http://localhost:8080/api/topics/1/messages/10
      */
     @DeleteMapping("/topics/{topicId}/messages/{messageId}")
-    public String deleteMessageFromTopic(@PathVariable Integer topicId, @PathVariable Integer messageId) {
+    public String deleteMessageFromTopic(@PathVariable Long topicId, @PathVariable Long messageId) {
         chatService.deleteMessageFromTopic(topicId, messageId);
         return "Message retiré du topic avec succès.";
     }

@@ -13,6 +13,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   app1:
+    image: app1
     build:
       context: ./MessageApp  # Build context pointing to MessageApp folder
       dockerfile: Dockerfile   # Specify Dockerfile in the MessageApp directory
@@ -28,6 +29,7 @@ services:
       SPRING_JPA_SHOW_SQL: "true"
 
   app2:
+    image: app2
     build:
       context: ./MessageApp  # Same fix for app2 as well
       dockerfile: Dockerfile
@@ -43,16 +45,17 @@ services:
       SPRING_JPA_SHOW_SQL: "true"
 
   monitoring:
+    image: monitoring
     build:
       context: ./Monitoring
       dockerfile: Dockerfile
     ports:
-      - "8082:8080"
+      - "9797:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock  # Bind Docker socket
 
   nginx:
-    image: nginx:latest
+    image: nginx
     ports:
       - "80:80"
     depends_on:
