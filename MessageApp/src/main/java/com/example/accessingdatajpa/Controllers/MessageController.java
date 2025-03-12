@@ -9,10 +9,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api")
-public class ChatController {
+public class MessageController {
 
     @Autowired
-    private MessageService chatService;
+    private MessageService messageService;
 
     /**
      * Envoi d’un message.
@@ -24,7 +24,7 @@ public class ChatController {
                                @RequestParam Long personId,
                                @RequestParam Long queueId,
                                @RequestParam(required = false) List<Long> topicIds) {
-        return chatService.sendMessage(content, personId, queueId, topicIds);
+        return messageService.sendMessage(content, personId, queueId, topicIds);
     }
 
     /**
@@ -34,7 +34,16 @@ public class ChatController {
     @GetMapping("/topics/{topicId}/messages")
     public List<Message> getMessagesFromTopic(@PathVariable Long topicId,
                                               @RequestParam Long startingNumber) {
-        return chatService.getMessagesFromTopic(topicId, startingNumber);
+        return messageService.getMessagesFromTopic(topicId, startingNumber);
+    }
+
+    /**
+     * Lire un message d'une queue donnée en FIFO
+     * Exemple : PUT http://localhost:8080/api/messages/readQueue/10
+     */
+    @PutMapping("/queues/{queueId}/read")
+    public Message getMessagesFromQueue(@PathVariable Long queueId) {
+        return messageService.readAndRemoveFirstMessageFromQueue(queueId);
     }
 
     /**
@@ -43,16 +52,7 @@ public class ChatController {
      */
     @GetMapping("/messages/search")
     public List<Message> searchMessages(@RequestParam String keyword) {
-        return chatService.searchMessages(keyword);
-    }
-
-    /**
-     * Marquer un message comme lu.
-     * Exemple : PUT http://localhost:8080/api/messages/10/read
-     */
-    @PutMapping("/messages/{messageId}/read")
-    public Message markMessageAsRead(@PathVariable Long messageId) {
-        return chatService.markMessageAsRead(messageId);
+        return messageService.searchMessages(keyword);
     }
 
     /**
@@ -61,7 +61,19 @@ public class ChatController {
      */
     @DeleteMapping("/topics/{topicId}/messages/{messageId}")
     public String deleteMessageFromTopic(@PathVariable Long topicId, @PathVariable Long messageId) {
-        chatService.deleteMessageFromTopic(topicId, messageId);
+        messageService.deleteMessageFromTopic(topicId, messageId);
         return "Message retiré du topic avec succès.";
     }
+
+    /**
+     * Marquer un message comme lu.
+     * Exemple : PUT http://localhost:8080/api/messages/10/read
+     * Pas recommandé d'utiliser cette méthode forcant la lecture d'un message directement,
+     * il vaut mieux utiliser les méthodes getMessagesFromQueue et getMessagesFromTopic
+     */
+    @PutMapping("/messages/{messageId}/read")
+    public Message markMessageAsRead(@PathVariable Long messageId) {
+        return messageService.markMessageAsRead(messageId, true); // par défaut on lit le message dans la queue mais le systeme d'avoir readFromQueue et readFromTopic est bancal
+    }
+
 }

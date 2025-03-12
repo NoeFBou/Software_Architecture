@@ -17,8 +17,11 @@ public class Message {
     @Column(name = "msg_id")
     private Long id;
 
-    @Column(name = "is_read")
-    private Boolean isRead = false;
+    @Column(name = "is_read_topic", nullable = false)
+    private Boolean isReadFromTopic = false;
+
+    @Column(name = "is_read_queue", nullable = false)
+    private Boolean isReadFromQueue = false;
 
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
@@ -46,8 +49,6 @@ public class Message {
     @Column(name = "read_count")
     private int readCount = 0;
 
-
-
     public Message() {}
 
     public Message(String content, Person person, Queue queue) {
@@ -55,7 +56,6 @@ public class Message {
         this.person = person;
         this.queue = queue;
         this.createdAt = LocalDateTime.now();
-
     }
 
     public List<TopicMessage> getTopicMessages() {
@@ -90,12 +90,21 @@ public class Message {
         this.person = person;
     }
 
-    public Boolean getRead() {
-        return isRead;
+    // Cleaned up getter and setter names for clarity
+    public Boolean getIsReadFromTopic() {
+        return isReadFromTopic;
     }
 
-    public void setRead(Boolean read) {
-        isRead = read;
+    public void setIsReadFromTopic(Boolean isReadFromTopic) {
+        this.isReadFromTopic = isReadFromTopic;
+    }
+
+    public Boolean getIsReadFromQueue() {
+        return isReadFromQueue;
+    }
+
+    public void setIsReadFromQueue(Boolean isReadFromQueue) {
+        this.isReadFromQueue = isReadFromQueue;
     }
 
     public String getContent() {
@@ -114,14 +123,6 @@ public class Message {
         this.id = id;
     }
 
-    public Boolean getIsRead() {
-        return isRead;
-    }
-
-    public void setIsRead(Boolean read) {
-        isRead = read;
-    }
-
     public LocalDateTime getFirstAccessedAt() {
         return firstAccessedAt;
     }
@@ -137,5 +138,4 @@ public class Message {
     public void setReadCount(int readCount) {
         this.readCount = readCount;
     }
-
 }

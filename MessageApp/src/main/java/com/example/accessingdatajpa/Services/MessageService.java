@@ -63,14 +63,14 @@ public class MessageService {
     @Transactional
     public Message sendMessage(String content, Long personId, Long queueId, List<Long> topicIds, boolean isLogMessage) {
         
-        // Recherche ou création de la Person
+        // Recherche ou création de la Person si elle n'existe pas
         Person person;
-        logger.info("DEBUG T personRepository: {}", personRepository);
+//        logger.info("DEBUG T personRepository: {}", personRepository);
         Optional<Person> personOpt = personRepository.findByUsername("User" + personId);
-        logger.info("DEBUG T PersonOpt: {}", personOpt);
+//        logger.info("DEBUG T PersonOpt: {}", personOpt);
         if (personOpt.isPresent()) {
             person = personOpt.get();
-            logger.info("DEBUG T Person {} found", person.getUsername());
+//            logger.info("DEBUG T Person {} found", person.getUsername());
         } else {
             person = new Person("User" + personId);
             person = personRepository.save(person);
@@ -112,13 +112,14 @@ public class MessageService {
                     topic = topicRepository.save(topic);
                     logger.info("Created new Topic: {} with ID {}", topic.getName(), topic.getId());
                 }
+
                 // Détermination du prochain numéro interne dans le topic
                 Long nextInternalNumber = topic.getTopicMessages().stream()
-                        .mapToLong(tm -> tm.getInternalNumber() != null ? tm.getInternalNumber() : 0L)  // Use mapToLong instead of mapToInt
+                        .mapToLong(tm -> tm.getInternalNumber() != null ? tm.getInternalNumber() : 0L)
                         .max()  // No need to cast to int, since we are working with Long
                         .orElse(0L) + 1;  // Default value is 0L, and we add 1 to get the next number
 
-                // Utilisation du constructeur pour initialiser la clé composite
+                // Création de l'association dans la table de jointure
                 TopicMessage topicMessage = new TopicMessage(topic, message, nextInternalNumber);
                 // NE PAS appeler explicitement topicMessageRepository.save(topicMessage);
                 // Ajoutez l'association aux collections des entités parente
@@ -128,8 +129,6 @@ public class MessageService {
                         message.getId(), topic.getId(), nextInternalNumber);
             }
         }
-
-
 
         // Envoyer le log à l'application externe si ce n'est pas un message de log
         if (!isLogMessage) {
@@ -142,8 +141,6 @@ public class MessageService {
         return message;
     }
 
-
-
     /**
      * Récupère la liste des messages d’un topic à partir d’un numéro interne donné.
      */
@@ -155,12 +152,17 @@ public class MessageService {
                 .collect(Collectors.toList());
 
         for (Message message : messages) {
-            if (message.getFirstAccessedAt() == null) {
-                message.setFirstAccessedAt(LocalDateTime.now());
-                logger.info("Message {} accessed for the first time at {}", message.getId(), message.getFirstAccessedAt());
-            }
-            message.setReadCount(message.getReadCount() + 1);
-            logger.info("Message {} read count updated to {}", message.getId(), message.getReadCount());
+//            if (message.getFirstAccessedAt() == null) {
+//                message.setFirstAccessedAt(LocalDateTime.now());
+//                logger.info("Message {} accessed for the first time at {}", message.getId(), message.getFirstAccessedAt());
+//            }
+//            message.setReadCount(message.getReadCount() + 1);
+//            logger.info("Message {} read count updated to {}", message.getId(), message.getReadCount());
+
+            // on peut juste appeler markMessageAsRead(message.getId(), false) maintenant en spécifiant
+            // que le message est lu depuis un topic
+            markMessageAsRead(message.getId(), false);
+
         }
 
         return messages;
@@ -178,26 +180,64 @@ public class MessageService {
 
     /**
      * Marque un message comme lu.
+     * Si le message est associé à une queue, il est retiré de la queue et la relation est supprimée
+     * (une Queue empile les messages non lus en mode FIFO).
      */
     @Transactional
-    public Message markMessageAsRead(Long messageId) {
+    public Message markMessageAsRead(Long messageId, Boolean readFromQueue) {
         Optional<Message> messageOpt = messageRepository.findById(messageId);
         if (messageOpt.isEmpty()) {
             throw new RuntimeException("Message non trouvé");
         }
         Message message = messageOpt.get();
-        message.setIsRead(true);
+
+        if (readFromQueue) {
+            message.setIsReadFromQueue(true);
+
+            // Retirer le message de sa queue si il en a une et update dans la base de données
+            Queue queue = message.getQueue();
+
+            if (queue != null) {
+                logger.info("Message {} has been read, removing from Queue {}", message.getId(), queue.getId());
+
+
+                // Retirer le message de la queue
+                queue.getMessages().remove(message);
+                queueRepository.save(queue);
+
+                // set l'id de la queue à null pour éviter une erreur de référence
+                message.setQueue(null);
+                messageRepository.save(message);
+
+            }
+        } else {
+            message.setIsReadFromTopic(true);
+            logger.info("Message {} marked as read from Topic", message.getId());
+        }
+
+        // maj nb lecture si message est lu
         message.setReadCount(message.getReadCount() + 1);
+
         if (message.getFirstAccessedAt() == null) {
             message.setFirstAccessedAt(LocalDateTime.now());
+            logger.info("Message {} marked as read", message.getId());
         }
-        logger.info("Message {} marked as read", message.getId());
-        return messageRepository.save(message);
+
+
+        // si le message n'est pas associé à un topic, on le supprime de la base
+        List<TopicMessage> associations = topicMessageRepository.findByMessageId(messageId);
+        if (associations.isEmpty()) {
+            messageRepository.delete(message);
+            logger.info("Message {} deleted from database as it has been read from Queue and is not associated with any topic", messageId);
+        }
+
+        messageRepository.save(message);
+
+        return message;
     }
 
     /**
      * Suppression d’un message d’un topic.
-     * La suppression est autorisée uniquement si le message a été lu dans sa queue.
      * Si le message n’est plus associé à aucun topic, il est supprimé de la base.
      */
     @Transactional
@@ -210,11 +250,12 @@ public class MessageService {
         }
         Message message = messageOpt.get();
 
-        if (!Boolean.TRUE.equals(message.getIsRead())) {
-            throw new RuntimeException("Impossible de supprimer un message qui n'a pas été lu dans sa queue.");
+        // On s'assure ici que si le message n'a jamais été lu depuis sa queue, il ne peut pas être supprimé.
+        if (!message.getIsReadFromQueue() && message.getQueue() != null) {
+            throw new RuntimeException("Impossible de supprimer un message présent dans une queue et non lu");
         }
 
-        TopicMessageId tmId = new TopicMessageId(topicId, messageId.longValue());
+        TopicMessageId tmId = new TopicMessageId(topicId, messageId); // on créé
         Optional<TopicMessage> tmOpt = topicMessageRepository.findById(tmId);
         if (tmOpt.isEmpty()) {
             throw new RuntimeException("Le message n'est pas associé au topic spécifié.");
@@ -231,5 +272,36 @@ public class MessageService {
         long endTime = System.currentTimeMillis();
         logger.info("Time taken to delete message {}: {} ms", messageId, (endTime - startTime));
     }
+
+    /**
+     * Lit et retire le premier message d'une queue.
+     *  Une Queue empile les messages non lus en mode FIFO.
+     */
+    @Transactional
+    public Message readAndRemoveFirstMessageFromQueue(Long queueId) {
+        Optional<Queue> queueOpt = queueRepository.findById(queueId);
+        if (queueOpt.isEmpty()) {
+            throw new RuntimeException("Queue not found.");
+        }
+
+        Queue queue = queueOpt.get();
+        if (queue.getMessages().isEmpty()) {
+            throw new RuntimeException("No messages in the queue.");
+        }
+
+        // Récupérer le premier message (FIFO)
+        Message firstMessage = queue.getMessages().get(0);
+        logger.info("Reading first message {} from Queue {}", firstMessage.getId(), queue.getId());
+
+        // Marquer le message comme lu (dans la queue)
+        markMessageAsRead(firstMessage.getId(), true);
+
+        // Renvoyer le message lu
+//        logger.info("Message {} removed from Queue {}", firstMessage.getId(), queue.getId());
+        return firstMessage;
+    }
+
+
+
 
 }
