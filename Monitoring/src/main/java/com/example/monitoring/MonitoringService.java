@@ -1,14 +1,14 @@
-
 package com.example.monitoring;
 
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 
 @Service
 public class MonitoringService {
@@ -19,7 +19,7 @@ public class MonitoringService {
     public MonitoringService() {
     }
 
-    @Scheduled(fixedRate = 10000) // Runs every 10 seconds
+    @Scheduled(fixedRate = 30000) // Runs every 30 seconds
     public void checkWorkerStatus() {
         for (String worker : WORKERS) {
             if (isContainerRunning(worker)) {
@@ -33,25 +33,22 @@ public class MonitoringService {
 
     private boolean isContainerRunning(String containerName) {
         try {
-            // Run Docker command to check if container is running
-            Process process = Runtime.getRuntime().exec("docker ps --filter 'name=" + containerName + "' --format '{{.Names}}'");
+            Process process = Runtime.getRuntime().exec(new String[]{"docker", "ps", "--format", "{{.Names}}"});
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String containerStatus = reader.readLine(); // If the container is running, this will be the container name
-
-            // If the container name matches, it is running
-            return containerStatus != null && containerStatus.equals(containerName);
-        } catch (Exception e) {
-            logger.error("Error checking status of container {}", containerName, e);
+            return reader.lines().anyMatch(line -> line.contains(containerName));
+        } catch (IOException e) {
             return false;
         }
     }
 
     private void notifyQueue(String worker) {
         String content = "Worker down: " + worker;
-        int personId = 999; // Dummy ID for monitoring messages
-        int queueId = 999; // Assuming a queue exists
+        int personId = 999; // Our monitoring will be the person 999
+        int queueId = 999; // If the queue is not existing, it will be automatically created
 
-        String requestUrl = "http://localhost:80/api/messages?content=" + content + "&personId=" + personId + "&queueId=" + queueId;
+        // Update the request to use Nginx (on port 80)
+        String requestUrl = "http://nginx:80/api/messages?content=" + content + "&personId=" + personId + "&queueId=" + queueId;
+        logger.info("Sending request to: {}", requestUrl);
         try {
             // Post a message to the queue indicating the worker is down
             new RestTemplate().postForObject(requestUrl, null, String.class);

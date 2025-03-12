@@ -42,6 +42,15 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_SHOW_SQL: "true"
 
+  monitoring:
+    build:
+      context: ./Monitoring
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Bind Docker socket
+
   nginx:
     image: nginx:latest
     ports:
