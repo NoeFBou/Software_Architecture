@@ -36,7 +36,7 @@ public class Message {
     private Person person;
 
     @ManyToOne
-    @JoinColumn(name = "queue_id", nullable = false)
+    @JoinColumn(name = "queue_id", nullable = true) // un message peut etre présent dans une queue ou seulement dans des topics
     @JsonBackReference(value = "queue-message")
     private Queue queue;
 

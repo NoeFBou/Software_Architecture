@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api")
@@ -33,15 +34,15 @@ public class MessageController {
      */
     @GetMapping("/topics/{topicId}/messages")
     public List<Message> getMessagesFromTopic(@PathVariable Long topicId,
-                                              @RequestParam Long startingNumber) {
-        return messageService.getMessagesFromTopic(topicId, startingNumber);
+                                              @RequestParam(required = false) Optional<Long> startingNumber) {
+        return messageService.getMessagesFromTopic(topicId, startingNumber.orElse(0L));
     }
 
     /**
      * Lire un message d'une queue donnée en FIFO
-     * Exemple : PUT http://localhost:8080/api/messages/readQueue/10
+     * Exemple : GET http://localhost:8080/api/queues/1/read
      */
-    @PutMapping("/queues/{queueId}/read")
+    @GetMapping("/queues/{queueId}/read")
     public Message getMessagesFromQueue(@PathVariable Long queueId) {
         return messageService.readAndRemoveFirstMessageFromQueue(queueId);
     }
