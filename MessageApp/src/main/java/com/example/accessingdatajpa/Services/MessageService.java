@@ -70,9 +70,15 @@ public class MessageService {
         if (queueOpt.isPresent()) {
             queue = queueOpt.get();
         } else {
-            queue = new Queue("Queue" + queueId, "Queue automatically created for id " + queueId);
-            queue = queueRepository.save(queue);
-            logger.info("Created new Queue: {}", queue.getName());
+            String queueName = "Queue" + queueId;
+            Optional<Queue> queueByName = queueRepository.findByName(queueName);
+            if (queueByName.isPresent()) {
+                queue = queueByName.get();
+            } else {
+                queue = new Queue(queueName, "Queue automatiquement créée pour l'id " + queueId);
+                queue = queueRepository.save(queue);
+                logger.info("Created new Queue: {}", queue.getName());
+            }
         }
 
         // Création et persistance du message
@@ -84,27 +90,31 @@ public class MessageService {
         if (topicIds != null) {
             for (Integer topicId : topicIds) {
                 Optional<Topic> topicOpt = topicRepository.findById(topicId);
+                Topic topic;
                 if (topicOpt.isPresent()) {
-                    Topic topic = topicOpt.get();
-                    // Détermination du prochain numéro interne dans le topic
-                    int nextInternalNumber = topic.getTopicMessages().stream()
-                            .mapToInt(tm -> tm.getInternalNumber() != null ? tm.getInternalNumber() : 0)
-                            .max().orElse(0) + 1;
-                    TopicMessage topicMessage = new TopicMessage();
-                    topicMessage.setTopic(topic);
-                    topicMessage.setMessage(message);
-                    topicMessage.setInternalNumber(nextInternalNumber);
-                    topicMessageRepository.save(topicMessage);
-                    // Mise à jour des collections bidirectionnelles
-                    topic.getTopicMessages().add(topicMessage);
-                    message.getTopicMessages().add(topicMessage);
-                    logger.info("Associated Message {} with Topic {} (internal number {})",
-                            message.getId(), topic.getId(), nextInternalNumber);
+                    topic = topicOpt.get();
                 } else {
-                    logger.warn("Topic with ID {} not found; skipping association", topicId);
+                    // Création automatique du Topic s'il n'existe pas
+                    topic = new Topic("DefaultTopic" + topicId, "Topic auto-créé pour l'ID " + topicId);
+                    topic = topicRepository.save(topic);
+                    logger.info("Created new Topic: {} with ID {}", topic.getName(), topic.getId());
                 }
+                // Détermination du prochain numéro interne dans le topic
+                int nextInternalNumber = topic.getTopicMessages().stream()
+                        .mapToInt(tm -> tm.getInternalNumber() != null ? tm.getInternalNumber() : 0)
+                        .max().orElse(0) + 1;
+                // Utilisation du constructeur pour initialiser la clé composite
+                TopicMessage topicMessage = new TopicMessage(topic, message, nextInternalNumber);
+                // NE PAS appeler explicitement topicMessageRepository.save(topicMessage);
+                // Ajoutez l'association aux collections des entités parente
+                topic.getTopicMessages().add(topicMessage);
+                message.getTopicMessages().add(topicMessage);
+                logger.info("Associated Message {} with Topic {} (internal number {})",
+                        message.getId(), topic.getId(), nextInternalNumber);
             }
         }
+
+
 
         // Envoyer le log à l'application externe si ce n'est pas un message de log
         if (!isLogMessage) {
@@ -189,7 +199,7 @@ public class MessageService {
             throw new RuntimeException("Impossible de supprimer un message qui n'a pas été lu dans sa queue.");
         }
 
-        TopicMessageId tmId = new TopicMessageId(topicId, messageId);
+        TopicMessageId tmId = new TopicMessageId(topicId, messageId.longValue());
         Optional<TopicMessage> tmOpt = topicMessageRepository.findById(tmId);
         if (tmOpt.isEmpty()) {
             throw new RuntimeException("Le message n'est pas associé au topic spécifié.");
