@@ -1,15 +1,19 @@
 package com.example.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.ResponseEntity;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class ControllerService {
@@ -36,15 +40,37 @@ public class ControllerService {
             ResponseEntity<String> response = new RestTemplate().getForEntity(requestUrl, String.class);
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                String message = response.getBody();
+                String messageJson  = response.getBody();
 
-                logger.info("Received message: {}", message);
+                logger.info("Received message: {}", messageJson );
+                ObjectMapper mapper = new ObjectMapper();
+                MessageDTO messageDTO = mapper.readValue(messageJson, MessageDTO.class);
+                String content = messageDTO.getContent();
+                String decodedContent = URLDecoder.decode(content, StandardCharsets.UTF_8);
 
-                if (message.contains("Worker") && message.contains("is DOWN")) {
-                    logger.error("CRITICAL: {}", message);
-                    // Additional logic can be added to trigger a worker restart mechanism
-                } else {
-                    logger.info("Other type of message read in Queue 999: {}", message);
+                if (decodedContent.contains("Worker") && decodedContent.contains("is DOWN")) {
+                    logger.error("CRITICAL: {}", decodedContent);
+// Extraction du nom du worker en panne avec une expression régulière
+                    Pattern pattern = Pattern.compile("Worker down: (\\w+)");
+                    Matcher matcher = pattern.matcher(decodedContent);
+                    if (matcher.find()) {
+                        String workerName = matcher.group(1);
+                        logger.info("Redémarrage du conteneur pour le worker: {}", workerName);
+                        try {
+                            Process restartProcess = Runtime.getRuntime().exec(new String[]{"docker", "restart", workerName});
+                            int exitCode = restartProcess.waitFor();
+                            if (exitCode == 0) {
+                                logger.info("Le conteneur {} a été redémarré avec succès.", workerName);
+                            } else {
+                                logger.error("Erreur lors du redémarrage du conteneur {}. Code de sortie: {}", workerName, exitCode);
+                            }
+                        } catch (IOException | InterruptedException ex) {
+                            logger.error("Erreur lors du redémarrage du conteneur {}", workerName, ex);
+                        }
+                    } else {
+                        logger.error("Le nom du worker n'a pas pu être extrait du message: {}", decodedContent);
+                    }
+                    logger.info("Other type of message read in Queue 999: {}", decodedContent);
                 }
 
             } else {
