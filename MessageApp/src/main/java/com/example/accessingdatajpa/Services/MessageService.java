@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.example.accessingdatajpa.Models.Entity.Message;
@@ -56,13 +57,13 @@ public class MessageService {
      * - Pour chaque topic (si fourni), on crée une relation avec numérotation interne.
      */
     @Transactional
-    public Message sendMessage(String content, Long personId, Long queueId, List<Long> topicIds) {
-        return sendMessage(content, personId, queueId, topicIds, false);
+    public ResponseEntity<?> sendMessage(String content, Long personId, String queueName, List<String> topicNames) {
+        return sendMessage(content, personId, queueName, topicNames, false);
     }
 
     // Surcharge avec le flag isLogMessage
     @Transactional
-    public Message sendMessage(String content, Long personId, Long queueId, List<Long> topicIds, boolean isLogMessage) {
+    public ResponseEntity<?> sendMessage(String content, Long personId, String queueName, List<String> topicNames, boolean isLogMessage) {
         
         // Recherche ou création de la Person si elle n'existe pas
         Person person;
@@ -79,11 +80,11 @@ public class MessageService {
         }
 
         Queue queue = null;
-        if (queueId != null) {
+        if (queueName != null) {
             // Recherche ou création de la Queue
-            String queueName = "Queue" + queueId;
+//            String queueName = "Queue" + topicNames;
             // Optional<Queue> queueOpt = queueRepository.findById(queueId);
-            Optional<Queue> queueOpt = queueRepository.findByName(queueName); // systeme D
+            Optional<Queue> queueOpt = queueRepository.findByName(queueName);
             if (queueOpt.isPresent()) {
                 queue = queueOpt.get();
             } else {
@@ -91,7 +92,7 @@ public class MessageService {
                 if (queueByName.isPresent()) {
                     queue = queueByName.get();
                 } else {
-                    queue = new Queue(queueName, "Queue automatiquement créée pour l'id " + queueId);
+                    queue = new Queue(queueName, "Queue automatiquement créée pour la queue " + queueName );
                     queue = queueRepository.save(queue);
                     logger.info("Created new Queue: {} of id {}", queue.getName(), queue.getId());
                 }
@@ -104,16 +105,16 @@ public class MessageService {
         logger.info("Message created with ID {} at {}", message.getId(), message.getCreatedAt());
 
         // Association du message aux topics (si fournis)
-        if (topicIds != null) {
-            for (Long topicId : topicIds) {
+        if (topicNames != null) {
+            for (String topicName : topicNames) {
 //                Optional<Topic> topicOpt = topicRepository.findById(topicId);
-                Optional<Topic> topicOpt = topicRepository.findByName("DefaultTopic" + topicId); // SYSTEM D POUR CONTOURNER ID AUTOINCREMENTE A CHANGER
+                Optional<Topic> topicOpt = topicRepository.findByName(topicName);
                 Topic topic;
                 if (topicOpt.isPresent()) {
                     topic = topicOpt.get();
                 } else {
                     // Création automatique du Topic s'il n'existe pas
-                    topic = new Topic("DefaultTopic" + topicId, "Topic auto-créé pour l'ID " + topicId);
+                    topic = new Topic(topicName, "Topic auto-créé pour le topic " + topicName);
                     topic = topicRepository.save(topic);
                     logger.info("Created new Topic: {} with ID {}", topic.getName(), topic.getId());
                 }
@@ -143,31 +144,29 @@ public class MessageService {
             logSenderService.sendLog(logMsg);
         }
 
-        return message;
+//        return message;
+        return ResponseEntity.ok(message);
     }
 
     /**
      * Récupère la liste des messages d’un topic à partir d’un numéro interne donné.
      */
     @Transactional
-    public List<Message> getMessagesFromTopic(Long topicId, Long startingNumber) {
-        // find topic by name of name DefaultTopic + topicId
-        Optional<Topic> topicOpt = topicRepository.findByName("DefaultTopic" + topicId); // SYSTEME D A CHANGER
+    public ResponseEntity<?> getMessagesFromTopic(String topicName, Long startingNumber) {
+        // chercher le topic par son nom (unique)
+        Optional<Topic> topicOpt = topicRepository.findByName(topicName);
 
-        ////// SYSTEME D A CHANGER
         if (topicOpt.isEmpty()) {
-            logger.warn("Topic {} not found", topicId);
-            return new ArrayList<>(
-                    List.of(new Message("Topic not found", null, null))
-            );
+            logger.warn("getMessagesFromTopic : Topic {} not found", topicName);
+            return ResponseEntity.badRequest().body("Topic of name " + topicName + " not found");
         }
-        /// /////////
+
 
         Topic topic = topicOpt.get();
         topic.setAccessCount(topic.getAccessCount() + 1);
         topicRepository.save(topic);
 
-
+        // Recupérer messages du topic
         Long id = topicOpt.get().getId();
 
         List<TopicMessage> topicMessages = topicMessageRepository.findByTopicAndInternalNumberGreaterThanEqual(id, startingNumber);
@@ -176,27 +175,17 @@ public class MessageService {
                 .collect(Collectors.toList());
 
         for (Message message : messages) {
-//            if (message.getFirstAccessedAt() == null) {
-//                message.setFirstAccessedAt(LocalDateTime.now());
-//                logger.info("Message {} accessed for the first time at {}", message.getId(), message.getFirstAccessedAt());
-//            }
-//            message.setReadCount(message.getReadCount() + 1);
-//            logger.info("Message {} read count updated to {}", message.getId(), message.getReadCount());
-
-            // on peut juste appeler markMessageAsRead(message.getId(), false) maintenant en spécifiant
-            // que le message est lu depuis un topic
             markMessageAsRead(message.getId(), false);
-
         }
 
-        return messages;
+        return ResponseEntity.ok(messages);
     }
 
     /**
      * Recherche de messages dont le contenu contient un mot-clé partiel.
      */
     @Transactional
-    public List<Message> searchMessages(String keyword) {
+    public ResponseEntity<?> searchMessages(String keyword) {
         List<Message> messages = messageRepository.findByContentContaining(keyword);
 
         // Mise à jour des statistiques pour chaque message trouvé
@@ -205,13 +194,12 @@ public class MessageService {
             if (message.getFirstAccessedAt() == null) {
                 message.setFirstAccessedAt(LocalDateTime.now());
             }
-            // Vous pouvez enregistrer chaque message si vous souhaitez forcer la persistance immédiate,
-            // ou laisser la transaction le faire automatiquement.
+            // forcer la persistance immédiate
             messageRepository.save(message);
         }
 
         logger.info("Search for keyword '{}' returned {} messages", keyword, messages.size());
-        return messages;
+        return ResponseEntity.ok(messages);
     }
 
     /**
@@ -220,7 +208,7 @@ public class MessageService {
      * (une Queue empile les messages non lus en mode FIFO).
      */
     @Transactional
-    public Message markMessageAsRead(Long messageId, Boolean readFromQueue) {
+    public ResponseEntity<?> markMessageAsRead(Long messageId, Boolean readFromQueue) {
         Optional<Message> messageOpt = messageRepository.findById(messageId);
         if (messageOpt.isEmpty()) {
             throw new RuntimeException("Message non trouvé");
@@ -267,7 +255,7 @@ public class MessageService {
             logger.info("Message {} deleted from database as it has been read from Queue and is not associated with any topic", messageId);
         }
 
-        return message;
+        return ResponseEntity.ok(message);
     }
 
 
@@ -276,7 +264,7 @@ public class MessageService {
      * Si le message n’est plus associé à aucun topic, il est supprimé de la base.
      */
     @Transactional
-    public void deleteMessageFromTopic(Long topicId, Long messageId) {
+    public ResponseEntity<?> deleteMessageFromTopic(String topicName, Long messageId) {
         long startTime = System.currentTimeMillis();
 
         Optional<Message> messageOpt = messageRepository.findById(messageId);
@@ -293,36 +281,53 @@ public class MessageService {
         messageRepository.save(message);
 
         // Mise à jour des statistiques du topic associé (si trouvé)
-        Optional<Topic> topicOpt = topicRepository.findById(topicId);
+        Topic topic = null;
+        Optional<Topic> topicOpt = topicRepository.findByName(topicName);
         if (topicOpt.isPresent()) {
-            Topic topic = topicOpt.get();
+            topic = topicOpt.get();
             topic.setAccessCount(topic.getAccessCount() + 1);
             topicRepository.save(topic);
+        } else{
+            logger.warn("Topic {} not found", topicName);
+            return ResponseEntity.badRequest().body("Topic of name " + topicName + " not found");
         }
+        Long topicId = topic.getId();
 
         // Vérification de la condition de suppression : le message doit avoir été lu dans la queue ou ne pas y être présent
         if (!message.getIsReadFromQueue() && message.getQueue() != null) {
-            throw new RuntimeException("Impossible de supprimer un message présent dans une queue et non lu");
+            logger.warn("Impossible de supprimer un message présent dans une queue et non lu");
+            return ResponseEntity.badRequest().body("Cannot delete a message present in a queue that has not been read");
         }
+
 
         // Suppression de l'association entre le message et le topic
         TopicMessageId tmId = new TopicMessageId(topicId, messageId);
         Optional<TopicMessage> tmOpt = topicMessageRepository.findById(tmId);
         if (tmOpt.isEmpty()) {
-            throw new RuntimeException("Le message n'est pas associé au topic spécifié.");
+            logger.warn("Le message n'est pas associé au topic spécifié.");
+            return ResponseEntity.badRequest().body("Message is not associated with the specified topic");
         }
+
+        String msgToReturn = "";
+
+
         topicMessageRepository.delete(tmOpt.get());
         logger.info("Association between Message {} and Topic {} deleted", messageId, topicId);
+        msgToReturn += "Association between Message " + messageId + " and Topic " + topicId + " deleted";
 
         // Si le message n'est plus associé à aucun topic, le supprimer de la base
         List<TopicMessage> associations = topicMessageRepository.findByMessageId(messageId);
         if (associations.isEmpty()) {
             messageRepository.delete(message);
             logger.info("Message {} deleted from database as it is no longer associated with any topic", messageId);
+            msgToReturn += "\nMessage " + messageId + " deleted";
         }
 
         long endTime = System.currentTimeMillis();
         logger.info("Time taken to delete message {}: {} ms", messageId, (endTime - startTime));
+        msgToReturn += "\ndeleted in " + (endTime - startTime) + " ms";
+
+        return ResponseEntity.ok(msgToReturn);
     }
 
 
@@ -331,13 +336,13 @@ public class MessageService {
      *  Une Queue empile les messages non lus en mode FIFO.
      */
     @Transactional
-    public Message readAndRemoveFirstMessageFromQueue(Long queueId) {
-        logger.warn("DEBUG QueueId: {}, type: {}", queueId, queueId.getClass());
+    public ResponseEntity<?> readAndRemoveFirstMessageFromQueue(String queueName) {
+        logger.warn("DEBUG QueueId: {}, type: {}", queueName, queueName.getClass());
         // On récupère la queue par son nom
-        Optional<Queue> queueOpt = queueRepository.findByName("Queue" + queueId);
+        Optional<Queue> queueOpt = queueRepository.findByName("Queue" + queueName);
         if (queueOpt.isEmpty()) {
-            logger.warn("Queue {} not found", queueId);
-            return new Message("Queue not found", null, null);
+            logger.warn("Queue {} not found", queueName);
+            return ResponseEntity.badRequest().body("Queue of name " + queueName + " not found");
         }
 
         Queue queue = queueOpt.get();
@@ -347,7 +352,7 @@ public class MessageService {
 
         if (queue.getMessages().isEmpty()) {
             logger.warn("No messages in Queue {}", queue.getId());
-            return new Message("Queue is empty", null, queue);
+            return ResponseEntity.badRequest().body("No messages in Queue " + queueName);
         }
 
         // Récupérer le premier message (FIFO)
@@ -364,7 +369,7 @@ public class MessageService {
         // Marquer le message comme lu (dans la queue)
         markMessageAsRead(firstMessage.getId(), true);
 
-        return firstMessage;
+        return ResponseEntity.ok(firstMessage);
     }
 
 

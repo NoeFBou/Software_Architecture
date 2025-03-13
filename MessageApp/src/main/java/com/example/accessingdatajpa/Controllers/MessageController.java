@@ -24,15 +24,14 @@ public class MessageController {
     @PostMapping("/messages")
     public ResponseEntity<?> sendMessage(@RequestParam String content,
                                          @RequestParam Long personId,
-                                         @RequestParam(required = false) Long queueId,
-                                         @RequestParam(required = false) List<Long> topicIds) {
+                                         @RequestParam(required = false) String queueName,
+                                         @RequestParam(required = false) List<String> topicNames) {
         // S'assurer que queueId ou topicIds est fourni
-        if (queueId == null && (topicIds == null || topicIds.isEmpty())) {
-            return ResponseEntity.badRequest().body("Either queueId or topicIds must be provided.");
+        if (queueName == null && (topicNames == null || topicNames.isEmpty())) {
+            return ResponseEntity.badRequest().body("Either a queueName or a list of topicNames must be provided.");
         }
 
-        Message message = messageService.sendMessage(content, personId, queueId, topicIds);
-        return ResponseEntity.ok(message);
+        return messageService.sendMessage(content, personId, queueName, topicNames);
     }
 
 
@@ -40,19 +39,19 @@ public class MessageController {
      * Récupération des messages d’un topic à partir d’un numéro interne.
      * Exemple : GET http://localhost:8080/api/topics/1/messages?startingNumber=5
      */
-    @GetMapping("/topics/{topicId}/messages")
-    public List<Message> getMessagesFromTopic(@PathVariable Long topicId,
+    @GetMapping("/topics/{topicName}/messages")
+    public ResponseEntity<?> getMessagesFromTopic(@PathVariable String topicName,
                                               @RequestParam(required = false) Optional<Long> startingNumber) {
-        return messageService.getMessagesFromTopic(topicId, startingNumber.orElse(0L));
+        return messageService.getMessagesFromTopic(topicName, startingNumber.orElse(0L));
     }
 
     /**
      * Lire un message d'une queue donnée en FIFO
      * Exemple : GET http://localhost:8080/api/queues/1/read
      */
-    @GetMapping("/queues/{queueId}/read")
-    public Message getMessagesFromQueue(@PathVariable Long queueId) {
-        return messageService.readAndRemoveFirstMessageFromQueue(queueId);
+    @GetMapping("/queues/{queueName}/read")
+    public ResponseEntity<?> getMessagesFromQueue(@PathVariable String queueName) {
+        return messageService.readAndRemoveFirstMessageFromQueue(queueName);
     }
 
     /**
@@ -60,7 +59,7 @@ public class MessageController {
      * Exemple : GET http://localhost:8080/api/messages/search?keyword=bonjour
      */
     @GetMapping("/messages/search")
-    public List<Message> searchMessages(@RequestParam String keyword) {
+    public ResponseEntity<?> searchMessages(@RequestParam String keyword) {
         return messageService.searchMessages(keyword);
     }
 
@@ -69,9 +68,9 @@ public class MessageController {
      * Exemple : DELETE http://localhost:8080/api/topics/1/messages/10
      */
     @DeleteMapping("/topics/{topicId}/messages/{messageId}")
-    public String deleteMessageFromTopic(@PathVariable Long topicId, @PathVariable Long messageId) {
-        messageService.deleteMessageFromTopic(topicId, messageId);
-        return "Message retiré du topic avec succès.";
+    public ResponseEntity<?> deleteMessageFromTopic(@PathVariable String topicName, @PathVariable Long messageId) {
+        messageService.deleteMessageFromTopic(topicName, messageId);
+        return ResponseEntity.ok("Message successfully deleted from topic.");
     }
 
     /**
@@ -81,7 +80,7 @@ public class MessageController {
      * il vaut mieux utiliser les méthodes getMessagesFromQueue et getMessagesFromTopic
      */
     @PutMapping("/messages/{messageId}/read")
-    public Message markMessageAsRead(@PathVariable Long messageId) {
+    public ResponseEntity<?> markMessageAsRead(@PathVariable Long messageId) {
         return messageService.markMessageAsRead(messageId, true); // par défaut on lit le message dans la queue mais le systeme d'avoir readFromQueue et readFromTopic est bancal
     }
 

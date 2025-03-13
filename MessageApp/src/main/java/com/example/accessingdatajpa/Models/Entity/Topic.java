@@ -15,7 +15,7 @@ public class Topic {
     @Column(name = "topic_id")
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String name;
 
     private String description;
