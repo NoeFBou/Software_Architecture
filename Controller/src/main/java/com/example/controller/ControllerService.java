@@ -5,6 +5,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.ResponseEntity;
 import java.io.BufferedReader;
@@ -37,8 +38,26 @@ public class ControllerService {
 
             String requestUrl = "http://" + targetWorker + MESSAGE_APP_SUFFIX;
 
-            ResponseEntity<String> response = new RestTemplate().getForEntity(requestUrl, String.class);
+            int maxRetries = 5;
+            int attempt = 0;
+            boolean success = false;
+            ResponseEntity<String> response = null;
 
+            while (attempt < maxRetries && !success) {
+                try {
+                    response = new RestTemplate().getForEntity(requestUrl, String.class);
+                    success = true;
+                } catch (ResourceAccessException ex) {
+                    attempt++;
+                    logger.warn("Tentative {} de connexion à {} échouée. Nouvelle tentative dans 2 secondes...", attempt, requestUrl);
+                    Thread.sleep(2000); // attendre 2 secondes avant de réessayer
+                }
+            }
+
+            if (!success) {
+                logger.error("Impossible de contacter {} après {} tentatives", requestUrl, maxRetries);
+                return;
+            }
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 String messageJson  = response.getBody();
 
