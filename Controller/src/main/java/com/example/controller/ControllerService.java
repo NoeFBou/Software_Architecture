@@ -50,25 +50,12 @@ public class ControllerService {
 
                 if (decodedContent.contains("Worker") && decodedContent.contains("down")) {
                     logger.error("CRITICAL: {}", decodedContent);
-                    // Extraction du nom du worker en panne avec une expression régulière
-                    Pattern pattern = Pattern.compile("Worker down: ([\\w-]+)");
+// Extraction du nom du worker en panne avec une expression régulière
+                    Pattern pattern = Pattern.compile("Worker down: (\\w+)");
                     Matcher matcher = pattern.matcher(decodedContent);
                     if (matcher.find()) {
                         String workerName = matcher.group(1); // ici, workerName vaut "app2"
                         logger.info("Redémarrage du conteneur pour le worker: {}", workerName);
-<<<<<<< HEAD
-                        try {
-                            // Exécution de la commande Docker pour redémarrer le conteneur
-                            // Process restartProcess1 = Runtime.getRuntime().exec(new String[]{"docker-compose", "down", workerName});
-                            // restartProcess1.waitFor();
-                            Process restartProcess2 = Runtime.getRuntime().exec(new String[]{"docker-compose", "up", workerName});
-                            int exitCode = restartProcess2.waitFor();
-
-                            if (exitCode == 0) {
-                                logger.info("Le conteneur {} a été redémarré avec succès.", workerName);
-                            } else {
-                                logger.error("Erreur lors du redémarrage du conteneur {}. Code de sortie: {}", workerName, exitCode);
-=======
 
                         // Récupération du nom complet du conteneur à partir du worker
                         String containerName = getContainerNameByWorker(workerName);
@@ -94,7 +81,6 @@ public class ControllerService {
                                 }
                             } catch (IOException | InterruptedException ex) {
                                 logger.error("Erreur lors du redémarrage du conteneur {}", containerName, ex);
->>>>>>> 470b90ea0dcd0ba95b3c6f09b8790530515ed87b
                             }
                         } else {
                             logger.error("Aucun conteneur correspondant n'a été trouvé pour le worker: {}", workerName);
