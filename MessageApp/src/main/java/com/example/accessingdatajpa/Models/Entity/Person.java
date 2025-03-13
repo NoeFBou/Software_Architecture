@@ -22,6 +22,9 @@ public class Person {
     @JsonManagedReference(value = "person_messages")
     private List<Message> messages = new ArrayList<>();
 
+    @Column(name = "access_count", nullable = false)
+    private int accessCount = 0;
+
     public Person() {}
 
     public Person(String username) {
@@ -50,5 +53,12 @@ public class Person {
 
     public void setMessages(List<Message> messages) {
         this.messages = messages;
+    }
+
+    public int getAccessCount() {
+        return accessCount;
+    }
+    public void setAccessCount(int accessCount) {
+        this.accessCount = accessCount;
     }
 }

@@ -17,6 +17,9 @@ public class Message {
     @Column(name = "msg_id")
     private Long id;
 
+    @Column(name = "access_count", nullable = false)
+    private int accessCount = 0;
+
     @Column(name = "is_read_topic", nullable = false)
     private Boolean isReadFromTopic = false;
 
@@ -137,5 +140,13 @@ public class Message {
 
     public void setReadCount(int readCount) {
         this.readCount = readCount;
+    }
+
+    public int getAccessCount() {
+        return accessCount;
+    }
+
+    public void setAccessCount(int accessCount) {
+        this.accessCount = accessCount;
     }
 }

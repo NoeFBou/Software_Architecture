@@ -24,6 +24,9 @@ public class Topic {
     @JsonManagedReference(value = "topic-topicMessage")
     private List<TopicMessage> topicMessages = new ArrayList<>();
 
+    @Column(name = "access_count", nullable = false)
+    private int accessCount = 0;
+
     public Topic() {}
 
     public Topic(String name, String description) {
@@ -63,5 +66,12 @@ public class Topic {
 
     public void setTopicMessages(List<TopicMessage> topicMessages) {
         this.topicMessages = topicMessages;
+    }
+
+    public int getAccessCount() {
+        return accessCount;
+    }
+    public void setAccessCount(int accessCount) {
+        this.accessCount = accessCount;
     }
 }

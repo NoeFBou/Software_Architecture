@@ -27,6 +27,9 @@ public class TopicMessage implements Serializable {
     @Column(name = "internal_number")
     private Long internalNumber;
 
+    @Column(name = "access_count", nullable = false)
+    private int accessCount = 0;
+
     public TopicMessage() {}
 
     public TopicMessage(Topic topic, Message message, Long internalNumber) {
@@ -68,5 +71,12 @@ public class TopicMessage implements Serializable {
 
     public void setInternalNumber(Long internalNumber) {
         this.internalNumber = internalNumber;
+    }
+
+    public int getAccessCount() {
+        return accessCount;
+    }
+    public void setAccessCount(int accessCount) {
+        this.accessCount = accessCount;
     }
 }

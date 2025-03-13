@@ -161,6 +161,11 @@ public class MessageService {
         }
         /// /////////
 
+        Topic topic = topicOpt.get();
+        topic.setAccessCount(topic.getAccessCount() + 1);
+        topicRepository.save(topic);
+
+
         Long id = topicOpt.get().getId();
 
         List<TopicMessage> topicMessages = topicMessageRepository.findByTopicAndInternalNumberGreaterThanEqual(id, startingNumber);
@@ -191,6 +196,18 @@ public class MessageService {
     @Transactional
     public List<Message> searchMessages(String keyword) {
         List<Message> messages = messageRepository.findByContentContaining(keyword);
+
+        // Mise à jour des statistiques pour chaque message trouvé
+        for (Message message : messages) {
+            message.setAccessCount(message.getAccessCount() + 1);
+            if (message.getFirstAccessedAt() == null) {
+                message.setFirstAccessedAt(LocalDateTime.now());
+            }
+            // Vous pouvez enregistrer chaque message si vous souhaitez forcer la persistance immédiate,
+            // ou laisser la transaction le faire automatiquement.
+            messageRepository.save(message);
+        }
+
         logger.info("Search for keyword '{}' returned {} messages", keyword, messages.size());
         return messages;
     }
@@ -208,42 +225,40 @@ public class MessageService {
         }
         Message message = messageOpt.get();
 
+        // Mise à jour des statistiques d'accès
+        message.setAccessCount(message.getAccessCount() + 1);
+
         if (readFromQueue) {
             message.setIsReadFromQueue(true);
 
-            // Retirer le message de sa queue si il en a une et update dans la base de données
+            // Retirer le message de sa queue s'il en a une
             Queue queue = message.getQueue();
-
             if (queue != null) {
                 logger.info("Message {} has been read, removing from Queue {}", message.getId(), queue.getId());
-
 
                 // Retirer le message de la queue
                 queue.getMessages().remove(message);
                 queueRepository.save(queue);
 
-                // set l'id de la queue à null pour éviter une erreur de référence
+                // Mettre la référence de la queue à null pour éviter les erreurs
                 message.setQueue(null);
                 messageRepository.save(message);
-
             }
         } else {
             message.setIsReadFromTopic(true);
             logger.info("Message {} marked as read from Topic", message.getId());
         }
 
-        // maj nb lecture si message est lu
+        // Mise à jour du nombre de lectures et de la date du premier accès
         message.setReadCount(message.getReadCount() + 1);
-
         if (message.getFirstAccessedAt() == null) {
             message.setFirstAccessedAt(LocalDateTime.now());
             logger.info("Message {} marked as read", message.getId());
         }
 
-
         messageRepository.save(message);
 
-        // si le message n'est pas associé à un topic, on le supprime de la base
+        // Si le message n'est plus associé à aucun topic, le supprimer
         List<TopicMessage> associations = topicMessageRepository.findByMessageId(messageId);
         if (associations.isEmpty()) {
             messageRepository.delete(message);
@@ -252,6 +267,7 @@ public class MessageService {
 
         return message;
     }
+
 
     /**
      * Suppression d’un message d’un topic.
@@ -267,12 +283,28 @@ public class MessageService {
         }
         Message message = messageOpt.get();
 
-        // On s'assure ici que si le message n'a jamais été lu depuis sa queue, il ne peut pas être supprimé.
+        // Mise à jour des statistiques du message
+        message.setAccessCount(message.getAccessCount() + 1);
+        if (message.getFirstAccessedAt() == null) {
+            message.setFirstAccessedAt(LocalDateTime.now());
+        }
+        messageRepository.save(message);
+
+        // Mise à jour des statistiques du topic associé (si trouvé)
+        Optional<Topic> topicOpt = topicRepository.findById(topicId);
+        if (topicOpt.isPresent()) {
+            Topic topic = topicOpt.get();
+            topic.setAccessCount(topic.getAccessCount() + 1);
+            topicRepository.save(topic);
+        }
+
+        // Vérification de la condition de suppression : le message doit avoir été lu dans la queue ou ne pas y être présent
         if (!message.getIsReadFromQueue() && message.getQueue() != null) {
             throw new RuntimeException("Impossible de supprimer un message présent dans une queue et non lu");
         }
 
-        TopicMessageId tmId = new TopicMessageId(topicId, messageId); // on créé
+        // Suppression de l'association entre le message et le topic
+        TopicMessageId tmId = new TopicMessageId(topicId, messageId);
         Optional<TopicMessage> tmOpt = topicMessageRepository.findById(tmId);
         if (tmOpt.isEmpty()) {
             throw new RuntimeException("Le message n'est pas associé au topic spécifié.");
@@ -280,6 +312,7 @@ public class MessageService {
         topicMessageRepository.delete(tmOpt.get());
         logger.info("Association between Message {} and Topic {} deleted", messageId, topicId);
 
+        // Si le message n'est plus associé à aucun topic, le supprimer de la base
         List<TopicMessage> associations = topicMessageRepository.findByMessageId(messageId);
         if (associations.isEmpty()) {
             messageRepository.delete(message);
@@ -290,6 +323,7 @@ public class MessageService {
         logger.info("Time taken to delete message {}: {} ms", messageId, (endTime - startTime));
     }
 
+
     /**
      * Lit et retire le premier message d'une queue.
      *  Une Queue empile les messages non lus en mode FIFO.
@@ -297,15 +331,18 @@ public class MessageService {
     @Transactional
     public Message readAndRemoveFirstMessageFromQueue(Long queueId) {
         logger.warn("DEBUG QueueId: {}, type: {}", queueId, queueId.getClass());
-//        Optional<Queue> queueOpt = queueRepository.findById(queueId);
+        // On récupère la queue par son nom
         Optional<Queue> queueOpt = queueRepository.findByName("Queue" + queueId);
-
         if (queueOpt.isEmpty()) {
             logger.warn("Queue {} not found", queueId);
             return new Message("Queue not found", null, null);
         }
 
         Queue queue = queueOpt.get();
+        // Mise à jour des statistiques de la queue
+        queue.setAccessCount(queue.getAccessCount() + 1);
+        queueRepository.save(queue);
+
         if (queue.getMessages().isEmpty()) {
             logger.warn("No messages in Queue {}", queue.getId());
             return new Message("Queue is empty", null, queue);
@@ -315,11 +352,19 @@ public class MessageService {
         Message firstMessage = queue.getMessages().get(0);
         logger.info("Reading first message {} from Queue {}", firstMessage.getId(), queue.getId());
 
+        // Vous pouvez aussi mettre à jour les statistiques du message ici (optionnel si déjà fait dans markMessageAsRead)
+        firstMessage.setAccessCount(firstMessage.getAccessCount() + 1);
+        if (firstMessage.getFirstAccessedAt() == null) {
+            firstMessage.setFirstAccessedAt(LocalDateTime.now());
+        }
+        messageRepository.save(firstMessage);
+
         // Marquer le message comme lu (dans la queue)
         markMessageAsRead(firstMessage.getId(), true);
 
         return firstMessage;
     }
+
 
 
 }
