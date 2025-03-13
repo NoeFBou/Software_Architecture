@@ -47,19 +47,39 @@ public class StatisticsController {
         result.put("averageAccessCount", averageAccessCount);
         result.put("maxAccessCount", maxAccessCount);
         result.put("minAccessCount", minAccessCount);
-        // Détails pour chaque message
+
+        // Pour chaque message, on construit un détail incluant son contenu, sa queue et les noms de ses topics
         List<Map<String, Object>> details = messages.stream().map(m -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", m.getId());
+            map.put("content", m.getContent());
             map.put("accessCount", m.getAccessCount());
             map.put("readCount", m.getReadCount());
             map.put("createdAt", m.getCreatedAt());
+
+            // Infos sur la queue (ID et nom) si présente
+            if (m.getQueue() != null) {
+                Map<String, Object> queueMap = new HashMap<>();
+                queueMap.put("id", m.getQueue().getId());
+                queueMap.put("name", m.getQueue().getName());
+                map.put("queue", queueMap);
+            } else {
+                map.put("queue", null);
+            }
+
+            // Liste des noms de topics associés via TopicMessage
+            List<String> topicNames = m.getTopicMessages().stream()
+                    .map(tm -> tm.getTopic().getName())
+                    .collect(Collectors.toList());
+            map.put("topics", topicNames);
+
             return map;
         }).collect(Collectors.toList());
         result.put("messages", details);
 
         return ResponseEntity.ok(result);
     }
+
 
     /**
      * Renvoie des statistiques raffinées sur les personnes.
