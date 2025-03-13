@@ -339,7 +339,7 @@ public class MessageService {
     public ResponseEntity<?> readAndRemoveFirstMessageFromQueue(String queueName) {
         logger.warn("DEBUG QueueId: {}, type: {}", queueName, queueName.getClass());
         // On récupère la queue par son nom
-        Optional<Queue> queueOpt = queueRepository.findByName("Queue" + queueName);
+        Optional<Queue> queueOpt = queueRepository.findByName(queueName);
         if (queueOpt.isEmpty()) {
             logger.warn("Queue {} not found", queueName);
             return ResponseEntity.badRequest().body("Queue of name " + queueName + " not found");
