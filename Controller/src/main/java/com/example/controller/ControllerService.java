@@ -54,22 +54,36 @@ public class ControllerService {
                     Pattern pattern = Pattern.compile("Worker down: (\\w+)");
                     Matcher matcher = pattern.matcher(decodedContent);
                     if (matcher.find()) {
-                        String workerName = matcher.group(1); // ici, workerName vaudra "app2"
+                        String workerName = matcher.group(1); // ici, workerName vaut "app2"
                         logger.info("Redémarrage du conteneur pour le worker: {}", workerName);
-                        try {
-                            // Exécution de la commande Docker pour redémarrer le conteneur
-                            Process restartProcess1 = Runtime.getRuntime().exec(new String[]{"docker-compose", "down", workerName});
-                            restartProcess1.waitFor();
-                            Process restartProcess2 = Runtime.getRuntime().exec(new String[]{"docker-compose", "up", workerName});
-                            int exitCode = restartProcess2.waitFor();
 
-                            if (exitCode == 0) {
-                                logger.info("Le conteneur {} a été redémarré avec succès.", workerName);
-                            } else {
-                                logger.error("Erreur lors du redémarrage du conteneur {}. Code de sortie: {}", workerName, exitCode);
+                        // Récupération du nom complet du conteneur à partir du worker
+                        String containerName = getContainerNameByWorker(workerName);
+                        if (containerName != null) {
+                            try {
+                                // Exécute la commande Docker pour redémarrer le conteneur
+                                Process restartProcess = Runtime.getRuntime().exec(new String[]{"docker", "restart", containerName});
+
+                                // Lecture du flux d'erreur pour obtenir plus d'informations en cas de problème
+                                BufferedReader errorReader = new BufferedReader(new InputStreamReader(restartProcess.getErrorStream()));
+                                StringBuilder errorOutput = new StringBuilder();
+                                String line;
+                                while ((line = errorReader.readLine()) != null) {
+                                    errorOutput.append(line).append("\n");
+                                }
+
+                                int exitCode = restartProcess.waitFor();
+                                if (exitCode == 0) {
+                                    logger.info("Le conteneur {} a été redémarré avec succès.", containerName);
+                                } else {
+                                    logger.error("Erreur lors du redémarrage du conteneur {}. Code de sortie: {}. Détails: {}",
+                                            containerName, exitCode, errorOutput.toString());
+                                }
+                            } catch (IOException | InterruptedException ex) {
+                                logger.error("Erreur lors du redémarrage du conteneur {}", containerName, ex);
                             }
-                        } catch (IOException | InterruptedException ex) {
-                            logger.error("Erreur lors du redémarrage du conteneur {}", workerName, ex);
+                        } else {
+                            logger.error("Aucun conteneur correspondant n'a été trouvé pour le worker: {}", workerName);
                         }
                     } else {
                         logger.error("Le nom du worker n'a pas pu être extrait du message: {}", decodedContent);
@@ -82,6 +96,22 @@ public class ControllerService {
             }
         } catch (Exception e) {
             logger.error("Error while checking messages in Queue 999", e);
+        }
+    }
+
+    private String getContainerNameByWorker(String workerName) {
+        try {
+            Process process = Runtime.getRuntime().exec(new String[]{"docker", "ps", "-a", "--format", "{{.Names}}"});
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String containerName = reader.lines()
+                    .filter(line -> line.contains(workerName))
+                    .findFirst()
+                    .orElse(null);
+            process.waitFor(); // attend la fin du processus
+            return containerName;
+        } catch (IOException | InterruptedException e) {
+            logger.error("Erreur lors de la récupération du nom du conteneur pour le worker: {}", workerName, e);
+            return null;
         }
     }
 
