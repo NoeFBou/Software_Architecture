@@ -3,6 +3,7 @@ package com.example.accessingdatajpa.Controllers;
 import com.example.accessingdatajpa.Models.Entity.Message;
 import com.example.accessingdatajpa.Services.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,12 +22,19 @@ public class MessageController {
      * http://localhost:8080/api/messages?content=Bonjour&personId=1&queueId=2&topicIds=1,3
      */
     @PostMapping("/messages")
-    public Message sendMessage(@RequestParam String content,
-                               @RequestParam Long personId,
-                               @RequestParam Long queueId,
-                               @RequestParam(required = false) List<Long> topicIds) {
-        return messageService.sendMessage(content, personId, queueId, topicIds);
+    public ResponseEntity<?> sendMessage(@RequestParam String content,
+                                         @RequestParam Long personId,
+                                         @RequestParam(required = false) Long queueId,
+                                         @RequestParam(required = false) List<Long> topicIds) {
+        // S'assurer que queueId ou topicIds est fourni
+        if (queueId == null && (topicIds == null || topicIds.isEmpty())) {
+            return ResponseEntity.badRequest().body("Either queueId or topicIds must be provided.");
+        }
+
+        Message message = messageService.sendMessage(content, personId, queueId, topicIds);
+        return ResponseEntity.ok(message);
     }
+
 
     /**
      * Récupération des messages d’un topic à partir d’un numéro interne.

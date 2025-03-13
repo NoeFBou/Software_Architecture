@@ -78,21 +78,23 @@ public class MessageService {
             logger.info("Created new Person: {}", person.getUsername());
         }
 
-        // Recherche ou création de la Queue
-        String queueName = "Queue" + queueId;
-//      Optional<Queue> queueOpt = queueRepository.findById(queueId);
-        Optional<Queue> queueOpt = queueRepository.findByName(queueName); // systeme D
-        Queue queue;
-        if (queueOpt.isPresent()) {
-            queue = queueOpt.get();
-        } else {
-            Optional<Queue> queueByName = queueRepository.findByName(queueName);
-            if (queueByName.isPresent()) {
-                queue = queueByName.get();
+        Queue queue = null;
+        if (queueId != null) {
+            // Recherche ou création de la Queue
+            String queueName = "Queue" + queueId;
+            // Optional<Queue> queueOpt = queueRepository.findById(queueId);
+            Optional<Queue> queueOpt = queueRepository.findByName(queueName); // systeme D
+            if (queueOpt.isPresent()) {
+                queue = queueOpt.get();
             } else {
-                queue = new Queue(queueName, "Queue automatiquement créée pour l'id " + queueId);
-                queue = queueRepository.save(queue);
-                logger.info("Created new Queue: {} of id {}", queue.getName(), queue.getId());
+                Optional<Queue> queueByName = queueRepository.findByName(queueName);
+                if (queueByName.isPresent()) {
+                    queue = queueByName.get();
+                } else {
+                    queue = new Queue(queueName, "Queue automatiquement créée pour l'id " + queueId);
+                    queue = queueRepository.save(queue);
+                    logger.info("Created new Queue: {} of id {}", queue.getName(), queue.getId());
+                }
             }
         }
 
