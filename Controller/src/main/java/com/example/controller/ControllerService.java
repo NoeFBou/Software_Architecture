@@ -50,16 +50,16 @@ public class ControllerService {
 
                 if (decodedContent.contains("Worker") && decodedContent.contains("down")) {
                     logger.error("CRITICAL: {}", decodedContent);
-// Extraction du nom du worker en panne avec une expression régulière
-                    Pattern pattern = Pattern.compile("Worker down: (\\w+)");
+                    // Extraction du nom du worker en panne avec une expression régulière
+                    Pattern pattern = Pattern.compile("Worker down: ([\\w-]+)");
                     Matcher matcher = pattern.matcher(decodedContent);
                     if (matcher.find()) {
                         String workerName = matcher.group(1); // ici, workerName vaudra "app2"
                         logger.info("Redémarrage du conteneur pour le worker: {}", workerName);
                         try {
                             // Exécution de la commande Docker pour redémarrer le conteneur
-                            Process restartProcess1 = Runtime.getRuntime().exec(new String[]{"docker-compose", "down", workerName});
-                            restartProcess1.waitFor();
+                            // Process restartProcess1 = Runtime.getRuntime().exec(new String[]{"docker-compose", "down", workerName});
+                            // restartProcess1.waitFor();
                             Process restartProcess2 = Runtime.getRuntime().exec(new String[]{"docker-compose", "up", workerName});
                             int exitCode = restartProcess2.waitFor();
 
