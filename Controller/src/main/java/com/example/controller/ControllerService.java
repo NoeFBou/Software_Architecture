@@ -50,7 +50,8 @@ public class ControllerService {
 
                 if (decodedContent.contains("Worker") && decodedContent.contains("is DOWN")) {
                     logger.error("CRITICAL: {}", decodedContent);
-// Extraction du nom du worker en panne avec une expression régulière
+
+                    // Extraction du nom du worker en panne avec une expression régulière
                     Pattern pattern = Pattern.compile("Worker down: (\\w+)");
                     Matcher matcher = pattern.matcher(decodedContent);
                     if (matcher.find()) {
