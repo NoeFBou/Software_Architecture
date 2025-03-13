@@ -19,7 +19,7 @@ public class MessageController {
     /**
      * Envoi d’un message.
      * Exemple d’appel avec Postman (méthode POST) :
-     * http://localhost:8080/api/messages?content=Bonjour&personId=1&queueId=2&topicIds=1,3
+     * http://localhost:8080/api/messages?content=Bonjour&personId=1&queueName=Q2&topicNames=1,Q3
      */
     @PostMapping("/messages")
     public ResponseEntity<?> sendMessage(@RequestParam String content,
@@ -37,7 +37,7 @@ public class MessageController {
 
     /**
      * Récupération des messages d’un topic à partir d’un numéro interne.
-     * Exemple : GET http://localhost:8080/api/topics/1/messages?startingNumber=5
+     * Exemple : GET http://localhost:8080/api/topics/topicName/messages?startingNumber=5
      */
     @GetMapping("/topics/{topicName}/messages")
     public ResponseEntity<?> getMessagesFromTopic(@PathVariable String topicName,
@@ -47,7 +47,7 @@ public class MessageController {
 
     /**
      * Lire un message d'une queue donnée en FIFO
-     * Exemple : GET http://localhost:8080/api/queues/1/read
+     * Exemple : GET http://localhost:8080/api/queues/queue1/read
      */
     @GetMapping("/queues/{queueName}/read")
     public ResponseEntity<?> getMessagesFromQueue(@PathVariable String queueName) {
@@ -65,9 +65,10 @@ public class MessageController {
 
     /**
      * Suppression d’un message d’un topic.
-     * Exemple : DELETE http://localhost:8080/api/topics/1/messages/10
+     * Pas Recommandé d'utiliser cette méthode pour supprimer un message d'une queue.
+     * Exemple : DELETE http://localhost:8080/api/topics/T1/messages/10
      */
-    @DeleteMapping("/topics/{topicId}/messages/{messageId}")
+    @DeleteMapping("/topics/{topicName}/messages/{messageId}")
     public ResponseEntity<?> deleteMessageFromTopic(@PathVariable String topicName, @PathVariable Long messageId) {
         messageService.deleteMessageFromTopic(topicName, messageId);
         return ResponseEntity.ok("Message successfully deleted from topic.");
@@ -75,13 +76,14 @@ public class MessageController {
 
     /**
      * Marquer un message comme lu.
-     * Exemple : PUT http://localhost:8080/api/messages/10/read
-     * Pas recommandé d'utiliser cette méthode forcant la lecture d'un message directement,
+     * Exemple : PUT http://localhost:8080/api/messages/topicName/read
+     * Pas recommandé d'utiliser cette méthode forçant la lecture d'un message directement,
      * il vaut mieux utiliser les méthodes getMessagesFromQueue et getMessagesFromTopic
      */
     @PutMapping("/messages/{messageId}/read")
     public ResponseEntity<?> markMessageAsRead(@PathVariable Long messageId) {
-        return messageService.markMessageAsRead(messageId, true); // par défaut on lit le message dans la queue mais le systeme d'avoir readFromQueue et readFromTopic est bancal
+        return messageService.markMessageAsRead(messageId, true);
+        // par défaut, on lit le message dans la queue mais le systeme d'avoir readFromQueue et readFromTopic est bancal
     }
 
 }
