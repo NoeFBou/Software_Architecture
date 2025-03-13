@@ -60,13 +60,19 @@ public class StatisticsController {
             // Infos sur la queue (ID et nom) si présente
             if (m.getQueue() != null) {
                 Map<String, Object> queueMap = new HashMap<>();
-                queueMap.put("id", m.getQueue().getId());
                 queueMap.put("name", m.getQueue().getName());
                 map.put("queue", queueMap);
             } else {
                 map.put("queue", null);
             }
 
+            if (m.getPerson() != null) {
+                Map<String, Object> personMap = new HashMap<>();
+                personMap.put("id user", m.getPerson().getId());
+                map.put("user", personMap);
+            } else {
+                map.put("user", null);
+            }
             // Liste des noms de topics associés via TopicMessage
             List<String> topicNames = m.getTopicMessages().stream()
                     .map(tm -> tm.getTopic().getName())
