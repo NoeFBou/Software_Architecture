@@ -59,8 +59,11 @@ public class ControllerService {
                         logger.info("Redémarrage du conteneur pour le worker: {}", workerName);
                         try {
                             // Exécution de la commande Docker pour redémarrer le conteneur
-                            Process restartProcess = Runtime.getRuntime().exec(new String[]{"docker", "restart", workerName});
-                            int exitCode = restartProcess.waitFor();
+                            Process restartProcess1 = Runtime.getRuntime().exec(new String[]{"docker-compose", "down", workerName});
+                            restartProcess1.waitFor();
+                            Process restartProcess2 = Runtime.getRuntime().exec(new String[]{"docker-compose", "up", workerName});
+                            int exitCode = restartProcess2.waitFor();
+
                             if (exitCode == 0) {
                                 logger.info("Le conteneur {} a été redémarré avec succès.", workerName);
                             } else {
