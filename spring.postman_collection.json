@@ -1,0 +1,279 @@
+{
+	"info": {
+		"_postman_id": "e80f82ef-2944-4545-bdcc-7d44d2955785",
+		"name": "spring",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "39090126"
+	},
+	"item": [
+		{
+			"name": "envoyer un message sur une queue et un topic",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/messages?content=Bonjour&personId=1&queueId=2&topicIds=1,2",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"messages"
+					],
+					"query": [
+						{
+							"key": "content",
+							"value": "Bonjour"
+						},
+						{
+							"key": "personId",
+							"value": "1"
+						},
+						{
+							"key": "queueId",
+							"value": "2"
+						},
+						{
+							"key": "topicIds",
+							"value": "1,2"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "envoyer un message sur une queue et plusieurs topics",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/messages?content=test2&personId=2&queueId=4&topicIds=3",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"messages"
+					],
+					"query": [
+						{
+							"key": "content",
+							"value": "test2"
+						},
+						{
+							"key": "personId",
+							"value": "2"
+						},
+						{
+							"key": "queueId",
+							"value": "4"
+						},
+						{
+							"key": "topicIds",
+							"value": "3"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "recuperer les messages d'un topic",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/topics/3/messages??startingNumber=1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"topics",
+						"3",
+						"messages"
+					],
+					"query": [
+						{
+							"key": "?startingNumber",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "search message by keyword",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/topics/3/messages??startingNumber=1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"topics",
+						"3",
+						"messages"
+					],
+					"query": [
+						{
+							"key": "?startingNumber",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Lire un message d'une queue donnée en FIFO",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/topics/3/messages??startingNumber=1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"topics",
+						"3",
+						"messages"
+					],
+					"query": [
+						{
+							"key": "?startingNumber",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "read a message",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/messages/6/read",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"messages",
+						"6",
+						"read"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "delete a message",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/topics/1/messages/1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"topics",
+						"1",
+						"messages",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/queues/999/read",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"queues",
+						"999",
+						"read"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "stats mesg",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/stats/messages",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"stats",
+						"messages"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "stats queue",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/stats/queues",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"stats",
+						"queues"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
