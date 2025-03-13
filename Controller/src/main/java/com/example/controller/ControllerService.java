@@ -38,7 +38,7 @@ public class ControllerService {
 
             String requestUrl = "http://" + targetWorker + MESSAGE_APP_SUFFIX;
 
-            int maxRetries = 5;
+            int maxRetries = 10;
             int attempt = 0;
             boolean success = false;
             ResponseEntity<String> response = null;
