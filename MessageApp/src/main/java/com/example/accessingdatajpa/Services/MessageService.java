@@ -371,7 +371,4 @@ public class MessageService {
 
         return ResponseEntity.ok(firstMessage);
     }
-
-
-
 }
