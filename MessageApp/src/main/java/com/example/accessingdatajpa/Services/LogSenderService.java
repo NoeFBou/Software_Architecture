@@ -8,6 +8,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,17 +20,21 @@ public class LogSenderService {
 
     public void sendLog(String logMessage) {
         try {
-            String url = "http://localhost:80/log";
+            // Encodage du contenu pour l'inclure dans l'URL
+            String encodedMessage = URLEncoder.encode(logMessage, StandardCharsets.UTF_8.toString());
+            // Construction de l'URL avec les paramètres requis
+            String url = "http://localhost:8080/api/messages?content=" + encodedMessage
+                    + "&personId=0&topicNames=log";
+
             HttpHeaders headers = new HttpHeaders();
+            // Ici on garde JSON, mais comme on envoie les paramètres dans l'URL, aucun body n'est nécessaire.
             headers.setContentType(MediaType.APPLICATION_JSON);
-            Map<String, String> payload = new HashMap<>();
-            payload.put("log", logMessage);
-            HttpEntity<Map<String, String>> request = new HttpEntity<>(payload, headers);
+            HttpEntity<String> request = new HttpEntity<>(null, headers);
             restTemplate.postForEntity(url, request, String.class);
-            logger.info("Log message sent to external application: {}", logMessage);
+            logger.info("Log message sent as internal message: {}", logMessage);
         } catch (Exception e) {
-            // On capture l'exception et on la log sans la relancer pour éviter toute boucle infinie.
-            logger.error("Failed to send log message to external application: {}", e.getMessage());
+            // En cas d'erreur, logguez l'exception sans relancer pour éviter la boucle infinie
+            logger.error("Failed to send internal log message: {}", e.getMessage());
         }
     }
 }

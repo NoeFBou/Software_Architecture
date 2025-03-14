@@ -31,7 +31,9 @@ public class MessageController {
             return ResponseEntity.badRequest().body("Either a queueName or a list of topicNames must be provided.");
         }
 
-        return messageService.sendMessage(content, personId, queueName, topicNames);
+        // Si le message est destiné à être un log, on force isLogMessage à true.
+        boolean isLogMessage = topicNames != null && topicNames.contains("log");
+        return messageService.sendMessage(content, personId, queueName, topicNames, isLogMessage);
     }
 
 
