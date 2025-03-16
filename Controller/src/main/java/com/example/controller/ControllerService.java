@@ -42,11 +42,21 @@ public class ControllerService {
             int attempt = 0;
             boolean success = false;
             ResponseEntity<String> response = null;
+            RestTemplate restTemplate = new RestTemplate();
 
             while (attempt < maxRetries && !success) {
                 try {
-                    response = new RestTemplate().getForEntity(requestUrl, String.class);
+                    response = restTemplate.getForEntity(requestUrl, String.class);
                     success = true;
+                } catch (org.springframework.web.client.HttpClientErrorException.BadRequest ex) {
+                    // Si la queue est vide, on loggue en info et on arrête le traitement
+                    if (ex.getResponseBodyAsString().contains("No messages in Queue 999")) {
+                        logger.info("La queue 999 est vide. Aucun message à traiter.");
+                        return;
+                    } else {
+                        // Pour toute autre erreur 400, on relance l'exception pour qu'elle soit traitée plus haut
+                        throw ex;
+                    }
                 } catch (ResourceAccessException ex) {
                     attempt++;
                     logger.warn("Tentative {} de connexion à {} échouée. Nouvelle tentative dans 2 secondes...", attempt, requestUrl);
