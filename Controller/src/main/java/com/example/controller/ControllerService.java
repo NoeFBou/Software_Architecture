@@ -114,7 +114,7 @@ public class ControllerService {
                 logger.warn("Failed to fetch messages from queue 999. Status: {}", response.getStatusCode());
             }
         } catch (Exception e) {
-            logger.error("Error while checking messages in Queue 999", e);
+            logger.warn("Error while checking messages in Queue 999", e);
         }
     }
 

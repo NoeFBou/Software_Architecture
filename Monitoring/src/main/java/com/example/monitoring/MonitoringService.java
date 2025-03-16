@@ -57,7 +57,7 @@ public class MonitoringService {
             String requestUrl = "http://" + targetWorker + ":8080/api/messages"
                     + "?content=" + encodedContent
                     + "&personId=" + personId
-                    + "&queueId=" + queueId;
+                    + "&queueName=" + queueId;
 
             logger.info("Sending request to: {}", requestUrl);
 
