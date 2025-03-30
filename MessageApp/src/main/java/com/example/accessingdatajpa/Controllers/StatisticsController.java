@@ -18,24 +18,40 @@ public class StatisticsController {
     @Autowired
     private StatisticsService statisticsService;
 
+    /**
+     * Get messages statistics
+     * Ex : GET http://localhost:8080/api/stats/messages
+     */
     @Operation(summary = "Get message statistics", description = "Retrieves statistics on messages")
     @GetMapping("/messages")
     public ResponseEntity<Map<String, Object>> getMessageStatistics() {
         return ResponseEntity.ok(statisticsService.getMessageStatistics());
     }
 
+    /**
+     * Get persons statistics
+     * Ex : GET http://localhost:8080/api/stats/persons
+     */
     @Operation(summary = "Get person statistics", description = "Retrieves statistics on users")
     @GetMapping("/persons")
     public ResponseEntity<Map<String, Object>> getPersonStatistics() {
         return ResponseEntity.ok(statisticsService.getPersonStatistics());
     }
 
+    /**
+     * Get queues statistics
+     * Ex : GET http://localhost:8080/api/stats/queues
+     */
     @Operation(summary = "Get queue statistics", description = "Retrieves statistics on queues")
     @GetMapping("/queues")
     public ResponseEntity<Map<String, Object>> getQueueStatistics() {
         return ResponseEntity.ok(statisticsService.getQueueStatistics());
     }
 
+    /**
+     * Get topics statistics
+     * Ex : GET http://localhost:8080/api/stats/topics
+     */
     @Operation(summary = "Get topic statistics", description = "Retrieves statistics on topics")
     @GetMapping("/topics")
     public ResponseEntity<Map<String, Object>> getTopicStatistics() {
