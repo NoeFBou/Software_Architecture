@@ -2,11 +2,14 @@ package com.example.accessingdatajpa.Controllers;
 
 import com.example.accessingdatajpa.Models.Entity.Message;
 import com.example.accessingdatajpa.Services.MessageService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -21,6 +24,7 @@ public class MessageController {
      * Exemple d’appel avec Postman (méthode POST) :
      * http://localhost:8080/api/messages?content=Bonjour&personId=1&queueName=Q2&topicNames=1,Q3
      */
+    @Operation(summary = "Send a message", description = "Sends a message to a queue or topics")
     @PostMapping("/messages")
     public ResponseEntity<?> sendMessage(@RequestParam String content,
                                          @RequestParam Long personId,
@@ -41,6 +45,7 @@ public class MessageController {
      * Récupération des messages d’un topic à partir d’un numéro interne.
      * Exemple : GET http://localhost:8080/api/topics/topicName/messages?startingNumber=5
      */
+    @Operation(summary = "Retrieve messages from a topic", description = "Fetch messages from a topic starting from a given number")
     @GetMapping("/topics/{topicName}/messages")
     public ResponseEntity<?> getMessagesFromTopic(@PathVariable String topicName,
                                               @RequestParam(required = false) Optional<Long> startingNumber) {
@@ -51,6 +56,7 @@ public class MessageController {
      * Lire un message d'une queue donnée en FIFO
      * Exemple : GET http://localhost:8080/api/queues/queue1/read
      */
+    @Operation(summary = "Read message from queue", description = "Reads and removes the first message from a queue")
     @GetMapping("/queues/{queueName}/read")
     public ResponseEntity<?> getMessagesFromQueue(@PathVariable String queueName) {
         return messageService.readAndRemoveFirstMessageFromQueue(queueName);
@@ -60,6 +66,7 @@ public class MessageController {
      * Recherche de messages par contenu partiel.
      * Exemple : GET http://localhost:8080/api/messages/search?keyword=bonjour
      */
+    @Operation(summary = "Search messages", description = "Search messages by keyword")
     @GetMapping("/messages/search")
     public ResponseEntity<?> searchMessages(@RequestParam String keyword) {
         return messageService.searchMessages(keyword);
@@ -70,6 +77,7 @@ public class MessageController {
      * Pas Recommandé d'utiliser cette méthode pour supprimer un message d'une queue.
      * Exemple : DELETE http://localhost:8080/api/topics/T1/messages/10
      */
+    @Operation(summary = "Delete message from topic", description = "Deletes a message from a specific topic")
     @DeleteMapping("/topics/{topicName}/messages/{messageId}")
     public ResponseEntity<?> deleteMessageFromTopic(@PathVariable String topicName, @PathVariable Long messageId) {
         messageService.deleteMessageFromTopic(topicName, messageId);
@@ -82,6 +90,7 @@ public class MessageController {
      * Pas recommandé d'utiliser cette méthode forçant la lecture d'un message directement,
      * il vaut mieux utiliser les méthodes getMessagesFromQueue et getMessagesFromTopic
      */
+    @Operation(summary = "Mark message as read", description = "Marks a message as read")
     @PutMapping("/messages/{messageId}/read")
     public ResponseEntity<?> markMessageAsRead(@PathVariable Long messageId) {
         return messageService.markMessageAsRead(messageId, true);

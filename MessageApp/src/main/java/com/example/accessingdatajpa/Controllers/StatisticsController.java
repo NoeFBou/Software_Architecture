@@ -12,6 +12,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,10 +33,17 @@ public class StatisticsController {
 
     @Autowired
     private TopicRepository topicRepository;
+    
+    /**
+     * We should implement a service to handle the statistics logic but 
+     * for now we decided to keep it simple and put the logic in the controller.
+     */
+
 
     /**
      * Renvoie des statistiques raffinées sur les messages.
      */
+    @Operation(summary = "Get message statistics", description = "Retrieves statistics on messages")
     @GetMapping("/messages")
     public ResponseEntity<Map<String, Object>> getMessageStatistics() {
         List<Message> messages = messageRepository.findAll();
@@ -90,6 +100,7 @@ public class StatisticsController {
     /**
      * Renvoie des statistiques raffinées sur les personnes.
      */
+    @Operation(summary = "Get person statistics", description = "Retrieves statistics on users")
     @GetMapping("/persons")
     public ResponseEntity<Map<String, Object>> getPersonStatistics() {
         List<Person> persons = personRepository.findAll();
@@ -119,6 +130,7 @@ public class StatisticsController {
     /**
      * Renvoie des statistiques raffinées sur les queues.
      */
+    @Operation(summary = "Get queue statistics", description = "Retrieves statistics on queues")
     @GetMapping("/queues")
     public ResponseEntity<Map<String, Object>> getQueueStatistics() {
         List<Queue> queues = queueRepository.findAll();
@@ -148,6 +160,7 @@ public class StatisticsController {
     /**
      * Renvoie des statistiques raffinées sur les topics.
      */
+    @Operation(summary = "Get topic statistics", description = "Retrieves statistics on topics")
     @GetMapping("/topics")
     public ResponseEntity<Map<String, Object>> getTopicStatistics() {
         List<Topic> topics = topicRepository.findAll();
