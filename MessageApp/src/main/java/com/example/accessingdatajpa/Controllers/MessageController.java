@@ -14,6 +14,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api")
+@Tag(name = "Messages", description = "Operations endpoints related to messages management in queues and topics")
 public class MessageController {
 
     @Autowired
