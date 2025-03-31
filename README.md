@@ -7,7 +7,6 @@ This project was developed as part of our **Software Architecture** course, focu
 ### **Contributors:**  
 - Tristan Patout  
 - Noé Florence  
-- Ismail El Amrani  
 
 ### **Repository:**  
 [GitHub - Software Architecture](https://github.com/NoeFBou/Software_Architecture)
